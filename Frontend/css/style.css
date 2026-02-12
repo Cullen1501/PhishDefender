@@ -1,0 +1,93 @@
+/* ======================== */
+/* Global Reset */
+/* Removes defualt browser spacing */
+/* ======================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ======================== */
+/* Body Styling */
+/* Controls overall page appearence */
+/* ======================== */
+
+body {
+    font-family: Arial, Helvetica, sans-serif; /* Site-wide font */
+
+    /* Dark gradient background */
+    background: linear-gradient (135deg, #0f172a, #1e293b);
+
+    color: white; /* Default text colour */
+
+    min-height: 100vh; /* Page fills full screen height */
+}
+
+/* ======================== */
+/* Navigation Bar */
+/* Top bar with logo and links */
+/* ======================== */
+
+.navbar {
+    display: flex; /* Align items horizontally */
+    justify-content: space-between; /* Logo left, links right */
+    align-items:center; /* Vertically centre items */
+    padding: 20px 40px; /* Space inside navbar */
+    background: rgba(0,0,0,0.3); /* Slight transparency */
+}
+
+/* Logo text styling */
+.logo {
+    font-size: 24.px;
+    font-weight: bold;
+}
+
+/* Navigation Links */
+.nav-links a {
+    color: white;
+    text-decoration: none; /* Removes underline */
+    margin-left: 20px; /* Spacing between links */
+}
+
+/* Hover effect for nav Links */
+.nav-links a:hover {
+    color: #38bdf8; /* light blue on hover */
+}
+
+/* ======================== */
+/* System Overview Section */
+/* Main Intro content area */
+/* ======================== */
+
+.system-overview {
+    text-align: center; /* Centres all text */
+    margin-top: 120px; /*pushes content down */
+    padding: 20px;
+}
+
+/* Main heading */
+.system-overview h1 {
+    font-size: 18px;
+    color: #cdb5e1; /* Slightly faded for contrast */ 
+    margin-bottom: 30px;
+}
+
+/* ======================== */
+/* Button Styling */
+/* Reusable button Style */
+/* ======================== */
+.btn {
+    background: #38bdf8; /* Button colour */
+    color : black; /* text color */
+    padding: 15px 30px; /* Button size */
+    border-radius: 8px; /* Rounded corners */
+    text-decoration: none; /* Removes underline */
+    font-weight: bold;
+}
+
+/* hover effect for button */
+.btn:hover {
+    background: #0ea5e9;
+}

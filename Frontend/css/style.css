@@ -22,6 +22,9 @@ body {
 
     color: white;
     min-height: 100vh;
+
+    display: flex;
+    flex-direction: column;
 }
 
 /*
@@ -38,7 +41,7 @@ Navigation Bar
 
 /* Logo text */
 .logo {
-    font-size: 24.px;
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -60,8 +63,39 @@ Navigation Bar
 }
 
 /*
+Footer Styling
+*/  
+
+.footer {
+    margin-top: 80px;
+    padding: 30px 40px;
+
+    background: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-inner {
+    text-align: center;
+}
+
+.footer-text {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-bottom: 10px;
+}
+
+.footer-copyright {
+    font-size: 13px;
+    opacity: 0.65;
+}
+
+/*
 System Overview Section
 */
+
+.system-overview {
+    flex: 1;
+}
 
 .system-overview {
     display: flex;
@@ -76,9 +110,13 @@ System Overview Section
 }
 
 .system-overview .page-title {
-    font-size: 36px;
-    font-weight: bold;
-    color: #cdb5e1;
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: white;
+    margin-bottom: 0px;
+
+    transform: perspective(450px) rotateX(30deg);
 }
 
 .system-description {
@@ -121,6 +159,7 @@ Analyse Page (Upload / Inbox View)
 
 .analyse-page {
     padding: 40px 40px;
+    flex: 1;
 }
 
 .page-header {
@@ -192,7 +231,7 @@ Analyse Page (Upload / Inbox View)
     cursor: not-allowed;
 }
 
-.select-meta {
+.selected-meta {
     margin-top: 20px;
     opacity:0.9;
     text-align: center;
@@ -201,4 +240,5 @@ Analyse Page (Upload / Inbox View)
     font-weight: 800;
     color: #ff4d4d;
     
+    display: none;
 }

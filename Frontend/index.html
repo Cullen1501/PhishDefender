@@ -11,45 +11,39 @@
 
  </head>
 
- <body>
-    <!-- ================================ -->
-    <!-- Navigation Bar -->
-    <!-- Contains logo and Navigation links -->
-    <!-- ================================ -->
-    <div class="navbar">
-        <div class="logo">
-            PhishDefender
-    </div>
+<script>
+    fetch("components/header.html")
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById("header").innerHTML = data;
+    });
 
-    <!-- Navigation Links -->
-     <div class="nav-links">
+    fetch("components/footer.html")
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById("footer").innerHTML = data;
+    });
 
-        <!-- Link to homepage -->
-        <a href="index.html">Home</a>
+</script>
 
-        <!-- Link to upload page -->
-        <a href="upload.html">Analyse Email</a>
+<body>
 
-        <!-- Placeholder link for future features -->
-        <a href="about.html">About</a>
-
-     </div>
-
-    </div>
-
+    <div id="header"></div>
     <!-- =================================== -->
-    <!-- System Overview Section -->
-    <!-- Main content users see first -->
-    <!-- =================================== -->
-    
+
     <div class="system-overview">
 
         <!-- main heading -->
         <div class="page-title">
-            Machine Learning Powered Phishing Detection System
+            PhishDefender
         </div>
+
+        <div class="page-logo-glow">
+            <img src="Images/PhishDefender Logo.png" alt="PhishDefender Logo" class="home-logo">
+        </div>
+
         <div class="system-description">
-            A research driven email classification system designed to identfiy phishing emails using supervised machine learning techniques and explainable Ai technologies. 
+            A research driven email classification system designed to identfiy phishing emails using supervised machine learning techniques and explainable AI technologies. 
         </div>
         
         <div class="system-action">
@@ -58,5 +52,8 @@
             </a>
         </div>
     </div>
+
+    <!-- =================================== -->
+    <div id="footer"></div>
  </body>
  </html>

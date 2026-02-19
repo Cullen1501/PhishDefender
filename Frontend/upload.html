@@ -1,24 +1,34 @@
 <!DOCTYPE html>
+
+<!-- Defines document type -->
  <html lang="en">
 
  <head>
+
      <meta charset="UTF-8">
     <title>PhishDefender - Phishing Detection</title>
     <link rel="stylesheet" href="css/style.css">
 
  </head>
 
-<body class="page-analyse">
-    <div class="navbar">
-        <div class="logo">PhishDefender</div>
+ <script>
+    fetch("components/header.html")
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById("header").innerHTML = data;
+    });
 
-        <div class="nav-links">
-            <a href="index.html">Home</a>
-            <a href="upload.html">Analyse Email</a>
-            <a href="abut.html">About</a>
-        </div>
-    </div>
+    fetch("components/footer.html")
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById("footer").innerHTML = data;
+    });
 
+</script>
+
+ <body>
+    <div id="header"></div>
+    <!-- =================================== -->
     <div class="analyse-page">
 
         <div class="page-header">
@@ -53,6 +63,18 @@
 
     </div>
 
+    <script>
+    const btn = document.querySelector(".analyse-btn");
+    const msg = document.getElementById("noSelectionMsg");
+
+    btn.addEventListener("click", () => {
+        if (btn.disabled) {
+            msg.style,display = "block";
+        }
+    });
+    </script>
+    <!-- =================================== -->
+    <div id="footer"></div>
 </body>
 </html>
 

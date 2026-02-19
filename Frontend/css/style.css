@@ -1,102 +1,92 @@
-/* ======================== */
-/* Global Reset */
-/* Removes defualt browser spacing */
-/* ======================== */
+/*
+Global Reset
+*/
 
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+    box-sizing: border-box;   
 }
 
-/* ======================== */
-/* Body Styling */
-/* Controls overall page appearence */
-/* ======================== */
+/*
+Body Styling:
+Controls overall page appearance
+*/
 
 body {
-    font-family: Arial, Helvetica, sans-serif; /* Site-wide font */
-
-    /* Dark gradient background */
+    font-family: Arial, Helvetica, sans-serif;
     background: linear-gradient(135deg, #0f172a, #1e293b);
-
-    color: white; /* Default text colour */
-
-    min-height: 100vh; /* Page fills full screen height */
+    color: white;
+    min-height: 100vh;
 }
 
-/* ======================== */
-/* Navigation Bar */
-/* Top bar with logo and links */
-/* ======================== */
+/*
+Navigation Bar
+*/
 
 .navbar {
-    display: flex; /* Align items horizontally */
-    justify-content: space-between; /* Logo left, links right */
-    align-items:center; /* Vertically centre items */
-    padding: 20px 40px; /* Space inside navbar */
-    background: rgba(0,0,0,0.3); /* Slight transparency */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: rgba(0, 0, 0, 0.3);
 }
 
-/* Logo text styling */
+/* Logo text */
 .logo {
     font-size: 24.px;
     font-weight: bold;
 }
 
-/* Navigation Links */
-.nav-links a {
+.nav-links a{
     color: white;
-    text-decoration: none; /* Removes underline */
-    margin-left: 20px; /* Spacing between links */
+    text-decoration: none;
+    margin-left: 20ps;
 }
 
-/* Hover effect for nav Links */
 .nav-links a:hover {
-    color: #38bdf8; /* light blue on hover */
+    color: #38dbf8;
 }
 
-/* ======================== */
-/* System Overview Section */
-/* Main Intro content area */
-/* ======================== */
+/*
+System Overview Section
+*/
 
 .system-overview {
-    display: flex; 
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 
     text-align: center;
-    
     margin-top: 120px;
-
     padding: 20px;
-
     gap: 20px;
 }
 
-/* Main heading */
-.system-overview h1 {
-    font-size: 18px;
-    color: #cdb5e1; /* Slightly faded for contrast */ 
-    margin-bottom: 30px;
-}
-
-/* ======================== */
-/* Button Styling */
-/* Reusable button Style */
-/* ======================== */
-.btn {
-    background: #38bdf8; /* Button colour */
-    color : black; /* text color */
-    padding: 15px 30px; /* Button size */
-    border-radius: 8px; /* Rounded corners */
-    text-decoration: none; /* Removes underline */
+.system-overview .page-title {
+    font-size: 36px;
     font-weight: bold;
+    color: #cdb5e1;
 }
 
-/* hover effect for button */
-.btn:hover {
+/*
+Button Styling
+*/
+
+.btn,
+.btn-primary {
+    background: #38dbf8;
+    color: black;
+    padding: 15px 30px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+}
+
+/* Hover effect */
+.btn:hover,
+.btn-primary:hover {
     background: #0ea5e9;
 }

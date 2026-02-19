@@ -1,41 +1,58 @@
 <!DOCTYPE html>
-
-<!-- Defines document type -->
  <html lang="en">
 
  <head>
-
-    <!-- Character Encoding -->
      <meta charset="UTF-8">
-
-     <!-- Page title shown in broswer tab -->
     <title>PhishDefender - Phishing Detection</title>
-
-    <!-- Links external CSS file -->
-    <!-- This connects style.css to this HTML page -->
     <link rel="stylesheet" href="css/style.css">
 
  </head>
 
-<div class="analyse-page">
-    <header class="page-header">
-        <h1>Analyse Email</h1>
-        <p>Select an email from the inbox to view and run analysis.</p>
-    </header>"
+<body class="page-analyse">
+    <div class="navbar">
+        <div class="logo">PhishDefender</div>
 
-    <main class="mail-layout">
-        <section class="viewer">
-            <!-- Live Inbox Viewer -->
-        </section>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="upload.html">Analyse Email</a>
+            <a href="abut.html">About</a>
+        </div>
+    </div>
 
-        <aside class="list">
+    <div class="analyse-page">
+
+        <div class="page-header">
+            <div class="page-title">Analyse Email</div>
+            <div class="page-description">
+                Select an email from the inbox to view and run analysis.
+            </div>
+        </div>
+
+        <div class="mail-layout">
+
+            <!-- Live Inbo Viewer -->
+            <div class="viewer">
+                <div class="viewer-placeholder">
+                    Select an email from the list to view it here.
+                </div>
+            </div>
+
             <!-- Email Selection Panel -->
-        </aside>
-    </main>
+            <div class="list">
+                <div class="list-placeholder">
+                    Email list will appear here.
+                </div>
+            </div>
 
-    <footer class="action-bar">
-        <button class="analyse-btn" disabled>ANALYSE SELECTED EMAIL</button>
-        <div class="selected-meta">No email selected</div>
-    </footer>
-</div>
+        </div>
+
+        <div class="action-bar">
+            <button class="analyse-btn" disabled> Analyse Selected Email </button>
+            <div class="selected-meta" id="noSelectionMsg"> No Email Selected</div>
+        </div>
+
+    </div>
+
+</body>
+</html>
 

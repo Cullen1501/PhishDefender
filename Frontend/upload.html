@@ -1,74 +1,45 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PhishDefender - Phishing Detection</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
 
-<!-- Defines document type -->
- <html lang="en">
+<body class="page-analyse">
+  <div id="headerContainer"></div>
 
- <head>
-
-     <meta charset="UTF-8">
-    <title>PhishDefender - Phishing Detection</title>
-    <link rel="stylesheet" href="css/style.css">
-
- </head>
-
- <body>
-    <div id="headerContainer"></div>
-    <!-- =================================== -->
-    <div class="analyse-page">
-
-        <div class="page-header">
-            <div class="page-title">Analyse Email</div>
-            <div class="page-description">
-                Select an email from the inbox to view and run analysis.
-            </div>
-        </div>
-
-        <div class="mail-layout">
-
-            <!-- Live Inbo Viewer -->
-            <div class="viewer">
-                <div class="viewer-placeholder">
-                    Select an email from the list to view it here.
-                </div>
-            </div>
-
-            <!-- Email Selection Panel -->
-            <div class="list">
-                <div class="list-placeholder">
-                    Email list will appear here.
-                </div>
-            </div>
-
-        </div>
-
-        <div class="action-bar">
-            <button class="analyse-btn" disabled> Analyse Selected Email </button>
-            <div class="selected-meta" id="noSelectionMsg"> No Email Selected</div>
-        </div>
-
+  <div class="analyse-page">
+    <div class="page-header">
+      <div class="page-title">Analyse Email</div>
+      <div class="page-description">
+        Select an email from the inbox to view and run analysis.
+      </div>
     </div>
 
-    <!-- =================================== -->
-    <div id="footerContainer"></div>
+    <div class="mail-layout">
+      <div class="viewer">
+        <div class="viewer-placeholder">
+          Select an email from the list to view it here.
+        </div>
+      </div>
 
-    <div id="modalContainer"></div>
+      <div class="list">
+        <div class="list-placeholder">Loading...</div>
+      </div>
+    </div>
 
-    <script defer>
-        document.addEventListener("DOMContentLoaded", () => {
-            const btn = document.querySelector(".analyse-btn");
-            const msg = document.getElementById("noSelectionMsg");
+    <div class="action-bar">
+      <button class="analyse-btn" disabled>Analyse Selected Email</button>
+      <div class="selected-meta" id="noSelectionMsg">No Email Selected</div>
+    </div>
+  </div>
 
-            btn.addEventListener("click", () => {
-                if (btn.disabled) msg.style.display = "block";
-            });
-        });
-    </script>
+  <div id="footerContainer"></div>
 
-    <script src="js/authController.js" defer></script>
-    <script src="js/componentLoader.js" defer></script>
-    <script src="js/headerController.js" defer></script>
-    <script src="js/inboxController.js" defer></script>
-
+  <script src="js/authController.js" defer></script>
+  <script src="js/componentLoader.js" defer></script>
+  <script src="js/headerController.js" defer></script>
+  <script src="js/inboxController.js" defer></script>
 </body>
 </html>
-

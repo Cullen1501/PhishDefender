@@ -1,34 +1,40 @@
 function initHeaderAuth() {
-    const btn = document.getElementById("headerAuthBtn");
-    const user = document.getElementById("headerUser");
+  const btn = document.getElementById("headerAuthBtn");
+  const user = document.getElementById("headerUser");
+  if (!btn) return;
 
-    if (!btn) return;
+  if (btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
 
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound ="1";
-
-    function refreshHeader() {
-        if (window.Auth && Auth.isLoggedIn()) {
-            if (user) user.textContent = `Welcome, ${Auth.getUsername()}`;
-            btn.textContent = "Logout";
-        } else {
-            if (user) user.textContent = "";
-            btn.textContent = "login";
-        }
+  function refresh() {
+    if (Auth.isLoggedIn()) {
+      if (user) user.textContent = `Welcome, ${Auth.getUsername() || "User"}`;
+      btn.textContent = "Logout";
+    } else {
+      if (user) user.textContent = "";
+      btn.textContent = "Login";
     }
+  }
 
-    btn.addEventListener("click", () =>{
-        console.log("Header auth button clocked");
+  btn.addEventListener("click", () => {
+    if (Auth.isLoggedIn()) {
+      Auth.logout();
+      refresh();
 
-        if (Auth.isLoggedIn()) {
-            Auth.logout();
-            refreshHeader();
-        } else {
-            Auth.showModal("");
-        }
-    });
+      // If you are on upload page, reload state
+      if (typeof window.loadInbox === "function") window.loadInbox();
+    } else {
+      // No popup anymore — send them to Analyse page to login in-panel
+      if (!location.pathname.endsWith("upload.html")) {
+        location.href = "upload.html";
+      } else {
+        // already on upload, show panel by reloading inbox state
+        if (typeof window.loadInbox === "function") window.loadInbox();
+      }
+    }
+  });
 
-    refreshHeader();
+  refresh();
 }
 
 document.addEventListener("componentsLoaded", initHeaderAuth);

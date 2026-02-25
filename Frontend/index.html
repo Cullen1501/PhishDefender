@@ -1,47 +1,31 @@
 <!DOCTYPE html>
-
-<!-- Defines document type -->
- <html lang="en">
-
- <head>
-
-     <meta charset="UTF-8">
-    <title>PhishDefender - Phishing Detection</title>
-    <link rel="stylesheet" href="css/style.css">
-
- </head>
-<script>
-    fetch("components/footer.html")
-    .then(response => response.text())
-    .then(data => {
-        document.getElementById("footer").innerHTML = data;
-    });
-
-</script>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PhishDefender - Phishing Detection</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
 
 <body>
+  <div id="headerContainer"></div>
 
-    <div class="system-overview">
+  <div class="system-overview">
+    <div class="page-title">PhishDefender</div>
 
-        <!-- main heading -->
-        <div class="page-title">
-            PhishDefender
-        </div>
-
-        <div class="image-container">
-            <img src="Images/PhishDefender Logo.png" alt="PhishDefender Logo" class="home-logo">
-        </div>
-        
-        <div class="buttons">
-            <a href="upload.html" class="btn-analyse">
-                Analyse Email
-            </a>
-            <a href="about.html" class="btn-about">
-            About
-            </a>
+    <div class="image-container">
+      <img src="Images/PhishDefender Logo.png" alt="PhishDefender Logo" class="home-logo">
     </div>
 
-    <!-- =================================== -->
-    <div id="footer"></div>
- </body>
- </html>
+    <div class="buttons">
+      <a href="upload.html" class="btn-analyse">Analyse Email</a>
+      <a href="about.html" class="btn-about">About</a>
+    </div>
+  </div>
+
+  <div id="footerContainer"></div>
+
+  <script src="js/authController.js" defer></script>
+  <script src="js/componentLoader.js" defer></script>
+  <script src="js/headerController.js" defer></script>
+</body>
+</html>

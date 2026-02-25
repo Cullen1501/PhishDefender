@@ -11,23 +11,8 @@
 
  </head>
 
- <script>
-    fetch("components/header.html")
-    .then(response => response.text())
-    .then(data => {
-        document.getElementById("header").innerHTML = data;
-    });
-
-    fetch("components/footer.html")
-    .then(response => response.text())
-    .then(data => {
-        document.getElementById("footer").innerHTML = data;
-    });
-
-</script>
-
  <body>
-    <div id="header"></div>
+    <div id="headerContainer"></div>
     <!-- =================================== -->
     <div class="analyse-page">
 
@@ -63,18 +48,27 @@
 
     </div>
 
-    <script>
-    const btn = document.querySelector(".analyse-btn");
-    const msg = document.getElementById("noSelectionMsg");
-
-    btn.addEventListener("click", () => {
-        if (btn.disabled) {
-            msg.style,display = "block";
-        }
-    });
-    </script>
     <!-- =================================== -->
-    <div id="footer"></div>
+    <div id="footerContainer"></div>
+
+    <div id="modalContainer"></div>
+
+    <script defer>
+        document.addEventListener("DOMContentLoaded", () => {
+            const btn = document.querySelector(".analyse-btn");
+            const msg = document.getElementById("noSelectionMsg");
+
+            btn.addEventListener("click", () => {
+                if (btn.disabled) msg.style.display = "block";
+            });
+        });
+    </script>
+
+    <script src="js/authController.js" defer></script>
+    <script src="js/componentLoader.js" defer></script>
+    <script src="js/headerController.js" defer></script>
+    <script src="js/inboxController.js" defer></script>
+
 </body>
 </html>
 

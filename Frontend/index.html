@@ -10,14 +10,7 @@
     <link rel="stylesheet" href="css/style.css">
 
  </head>
-
 <script>
-    fetch("components/header.html")
-    .then(response => response.text())
-    .then(data => {
-        document.getElementById("header").innerHTML = data;
-    });
-
     fetch("components/footer.html")
     .then(response => response.text())
     .then(data => {
@@ -28,9 +21,6 @@
 
 <body>
 
-    <div id="header"></div>
-    <!-- =================================== -->
-
     <div class="system-overview">
 
         <!-- main heading -->
@@ -38,19 +28,17 @@
             PhishDefender
         </div>
 
-        <div class="page-logo-glow">
+        <div class="image-container">
             <img src="Images/PhishDefender Logo.png" alt="PhishDefender Logo" class="home-logo">
         </div>
-
-        <div class="system-description">
-            A research driven email classification system designed to identfiy phishing emails using supervised machine learning techniques and explainable AI technologies. 
-        </div>
         
-        <div class="system-action">
-            <a href="upload.html" class="btn-primary">
+        <div class="buttons">
+            <a href="upload.html" class="btn-analyse">
                 Analyse Email
             </a>
-        </div>
+            <a href="about.html" class="btn-about">
+            About
+            </a>
     </div>
 
     <!-- =================================== -->

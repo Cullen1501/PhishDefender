@@ -1,287 +1,254 @@
 document.addEventListener("componentsLoaded", () => {
-  console.log("Inbox controller loaded");
-
   const viewer = document.querySelector(".viewer");
   const listPanel = document.querySelector(".list");
-  const analyseBtn = document.querySelector(".analyse-btn");
-  const metaMsg = document.getElementById("noSelectionMsg");
+  const phishingList = document.getElementById("phishingList");
+  const legitimateList = document.getElementById("legitimateList");
+  const phishingCount = document.getElementById("phishingCount");
+  const legitimateCount = document.getElementById("legitimateCount");
+  const viewerStatus = document.getElementById("viewerStatus");
+  const refreshBtn = document.getElementById("refreshInboxBtn");
+  const analyseBtn = document.getElementById("analyseBtn");
+  const comingSoonOverlay = document.getElementById("comingSoonOverlay");
+  const closeComingSoonBtn = document.getElementById("closeComingSoonBtn");
 
-  if (!viewer || !listPanel || !analyseBtn || !metaMsg) return;
+  if (!viewer || !listPanel || !phishingList || !legitimateList) return;
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
 
-  const newMailBar = document.createElement("div");
-  newMailBar.style.display = "none";
-  newMailBar.style.padding = "10px 12px";
-  newMailBar.style.marginBottom = "10px";
-  newMailBar.style.border = "1px solid rgba(255,255,255,0.18)";
-  newMailBar.style.borderRadius = "10px";
-  newMailBar.style.background = "rgba(56,189,248,0.10)";
-  newMailBar.style.cursor = "pointer";
-  newMailBar.style.userSelect = "none";
-
-  const newMailBtn = document.createElement("div");
-  newMailBtn.textContent = "New emails — Click to refresh";
-  newMailBtn.style.fontWeight = "700";
-  newMailBar.appendChild(newMailBtn);
-
-  listPanel.parentNode.insertBefore(newMailBar, listPanel);
-
-  
-  let selectedEmailKey = null; 
-  let lastKnownKeys = new Set();  
-  let pendingNewCount = 0;
-  let checking = false;
-
-  function renderWelcome(username) {
+  function renderWelcome(username = "") {
     viewer.innerHTML = `
       <div class="viewer-placeholder">
-        <h3>Welcome${username ? `, ${username}` : ""}</h3>
-        <p style="opacity:0.7;">Select an email from the list to view it here.</p>
+        <h3>Welcome${username ? `, ${escapeHtml(username)}` : ""}</h3>
+        <p>Select an email from the inbox panel to view it here.</p>
         <hr>
       </div>
     `;
+    if (viewerStatus) viewerStatus.textContent = "No Email Selected";
   }
 
-  function setListStatus(text) {
-    listPanel.innerHTML = `<div style="opacity:0.75; padding:12px;">${text}</div>`;
-  }
-
-  function hideNewMailBar() {
-    pendingNewCount = 0;
-    newMailBar.style.display = "none";
-  }
-
-  function showNewMailBar(count) {
-    pendingNewCount = count;
-    newMailBtn.textContent = `New email${count === 1 ? "" : "s"} (${count}) — Click to refresh`;
-    newMailBar.style.display = "block";
-  }
-
-  function getEmailKey(e) {
-    const id = e.id || e.uid || e.messageId || e.message_id || e._id;
-    if (id) return String(id);
-
-    const s = (e.subject || "").trim();
-    const f = (e.from || "").trim();
-    const d = (e.date || "").trim();
-    return `${s}|||${f}|||${d}`;
+  function setInboxStatus(message) {
+    listPanel.innerHTML = `<div class="list-status">${escapeHtml(message)}</div>`;
   }
 
   function renderLoginPanel(message = "") {
-    hideNewMailBar();
+    renderWelcome("");
+    setResultPlaceholders();
+
     listPanel.innerHTML = `
       <div class="login-panel">
         <h3>Login to Gmail</h3>
-        <div class="hint">Use your Gmail & App Password (not your normal password).</div>
+        <div class="hint">Use your Gmail address and a Google App Password.</div>
 
         <input id="inlineGmailInput" type="email" placeholder="Your Gmail address" />
         <input id="inlineAppPassInput" type="password" placeholder="Gmail App Password" />
 
-        <div id="inlineLoginError" class="error">${message || ""}</div>
+        <div id="inlineLoginError" class="error" style="display:${message ? "block" : "none"};">${escapeHtml(message)}</div>
 
         <div class="actions">
-          <button id="inlineLoginBtn" class="primary">Login</button>
-          <button id="inlineClearBtn" class="secondary">Clear</button>
+          <button id="inlineLoginBtn" class="primary" type="button">Login</button>
+          <button id="inlineClearBtn" class="secondary" type="button">Clear</button>
         </div>
       </div>
     `;
 
-    const err = document.getElementById("inlineLoginError");
-    if (err) err.style.display = message ? "block" : "none";
+    document.getElementById("inlineLoginBtn")?.addEventListener("click", () => {
+      const email = (document.getElementById("inlineGmailInput")?.value || "").trim();
+      const pass = (document.getElementById("inlineAppPassInput")?.value || "").trim();
 
-    const loginBtn = document.getElementById("inlineLoginBtn");
-    const clearBtn = document.getElementById("inlineClearBtn");
-    const emailInput = document.getElementById("inlineGmailInput");
-    const passInput = document.getElementById("inlineAppPassInput");
+      if (!email || !pass) {
+        renderLoginPanel("Please enter both Gmail and App Password.");
+        return;
+      }
 
-    if (loginBtn) {
-      loginBtn.addEventListener("click", () => {
-        const email = (emailInput?.value || "").trim();
-        const pass = (passInput?.value || "").trim();
+      Auth.login(email, pass);
+      loadInbox();
+    });
 
-        if (!email || !pass) {
-          renderLoginPanel("Please enter both Gmail and App Password.");
-          return;
-        }
+    document.getElementById("inlineClearBtn")?.addEventListener("click", () => {
+      const emailInput = document.getElementById("inlineGmailInput");
+      const passInput = document.getElementById("inlineAppPassInput");
+      if (emailInput) emailInput.value = "";
+      if (passInput) passInput.value = "";
+      renderLoginPanel("");
+    });
+  }
 
-        Auth.login(email, pass);
-        loadInbox({ silent: false });
-        startNewMailWatcher();
-      });
-    }
+  function openEmail(emailObj) {
+    viewer.innerHTML = `
+      <div class="email-view-content">
+        <h3>${escapeHtml(emailObj.subject || "(No subject)")}</h3>
+        <p><strong>From:</strong> ${escapeHtml(emailObj.from || "")}</p>
+        <p><strong>Date:</strong> ${escapeHtml(emailObj.date || "")}</p>
+        <p><strong>Prediction:</strong> ${escapeHtml(emailObj.prediction || "unknown")}</p>
+        ${typeof emailObj.phishing_confidence === "number" ? `<p><strong>Phishing confidence:</strong> ${(emailObj.phishing_confidence * 100).toFixed(1)}%</p>` : ""}
+        <hr>
+        <div class="email-body">${escapeHtml(emailObj.body || "No email body available.")}</div>
+      </div>
+    `;
 
-    if (clearBtn) {
-      clearBtn.addEventListener("click", () => {
-        if (emailInput) emailInput.value = "";
-        if (passInput) passInput.value = "";
-        renderLoginPanel("");
-      });
+    if (viewerStatus) {
+      viewerStatus.textContent = emailObj.prediction === "phishing" ? "Viewing possible phishing email" : "Viewing possible legitimate email";
     }
   }
 
-  function makeEmailRow(emailObj) {
-    const item = document.createElement("div");
-    item.className = "email-item";
-    item.style.padding = "12px";
-    item.style.cursor = "pointer";
-    item.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
-
-    const key = getEmailKey(emailObj);
-
+  function makeInboxRow(emailObj) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = `email-item ${emailObj.prediction === "phishing" ? "is-phishing" : "is-legitimate"}`;
     item.innerHTML = `
-      <strong>${emailObj.subject || "(No subject)"}</strong>
-      <div style="font-size:12px; opacity:0.7;">${emailObj.from || ""}</div>
+      <strong>${escapeHtml(emailObj.subject || "(No subject)")}</strong>
+      <div class="email-item-meta">${escapeHtml(emailObj.from || "")}</div>
+      <div class="email-item-date">${escapeHtml(emailObj.date || "")}</div>
     `;
-
-    item.addEventListener("click", () => {
-      selectedEmailKey = key;
-
-      viewer.innerHTML = `
-        <h3>${emailObj.subject || "(No subject)"}</h3>
-        <p><strong>From:</strong> ${emailObj.from || ""}</p>
-        ${emailObj.date ? `<p><strong>Date:</strong> ${emailObj.date}</p>` : ""}
-        <hr>
-        <div style="white-space:pre-wrap;">${emailObj.body || ""}</div>
-      `;
-      analyseBtn.disabled = false;
-      metaMsg.style.display = "none";
-    });
-
+    item.addEventListener("click", () => openEmail(emailObj));
     return item;
   }
 
-  function renderEmailList(emails) {
+  function makeResultRow(emailObj) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `result-item ${emailObj.prediction === "phishing" ? "is-phishing" : "is-legitimate"}`;
+    row.innerHTML = `
+      <strong>${escapeHtml(emailObj.subject || "(No subject)")}</strong>
+      <div class="email-item-meta">${escapeHtml(emailObj.from || "")}</div>
+      ${typeof emailObj.phishing_confidence === "number" ? `<div class="result-confidence">Confidence: ${(emailObj.phishing_confidence * 100).toFixed(1)}%</div>` : ""}
+    `;
+    row.addEventListener("click", () => openEmail(emailObj));
+    return row;
+  }
+
+  function setResultPlaceholders() {
+    phishingList.innerHTML = `<div class="result-placeholder">Emails predicted as phishing will appear here.</div>`;
+    legitimateList.innerHTML = `<div class="result-placeholder">Emails predicted as legitimate will appear here.</div>`;
+    if (phishingCount) phishingCount.textContent = "0";
+    if (legitimateCount) legitimateCount.textContent = "0";
+  }
+
+  function renderSortedLists(emails) {
+    const phishingEmails = emails.filter((item) => item.prediction === "phishing");
+    const legitimateEmails = emails.filter((item) => item.prediction === "legitimate");
+
+    phishingList.innerHTML = "";
+    legitimateList.innerHTML = "";
+
+    if (phishingEmails.length === 0) {
+      phishingList.innerHTML = `<div class="result-placeholder">No emails are currently flagged as phishing.</div>`;
+    } else {
+      phishingEmails.forEach((item) => phishingList.appendChild(makeResultRow(item)));
+    }
+
+    if (legitimateEmails.length === 0) {
+      legitimateList.innerHTML = `<div class="result-placeholder">No emails are currently flagged as legitimate.</div>`;
+    } else {
+      legitimateEmails.forEach((item) => legitimateList.appendChild(makeResultRow(item)));
+    }
+
+    if (phishingCount) phishingCount.textContent = String(phishingEmails.length);
+    if (legitimateCount) legitimateCount.textContent = String(legitimateEmails.length);
+  }
+
+  function renderInboxList(emails) {
     listPanel.innerHTML = "";
 
-    if (!emails || emails.length === 0) {
-      setListStatus("Inbox is empty.");
+    const loginSummary = document.createElement("div");
+    loginSummary.className = "login-summary";
+    loginSummary.innerHTML = `
+      <div>
+        <strong>${escapeHtml(Auth.getCreds()?.email || "")}</strong>
+        <div class="login-summary-sub">Showing all inbox emails</div>
+      </div>
+      <button id="logoutInlineBtn" type="button" class="secondary small-inline-btn">Logout</button>
+    `;
+    listPanel.appendChild(loginSummary);
+
+    document.getElementById("logoutInlineBtn")?.addEventListener("click", () => {
+      Auth.logout();
+      loadInbox();
+    });
+
+    if (!emails.length) {
+      const emptyState = document.createElement("div");
+      emptyState.className = "list-status";
+      emptyState.textContent = "Inbox is empty.";
+      listPanel.appendChild(emptyState);
       return;
     }
 
-    lastKnownKeys = new Set(emails.map(getEmailKey));
-
-    emails.forEach((emailObj) => {
-      listPanel.appendChild(makeEmailRow(emailObj));
-    });
+    emails.forEach((item) => listPanel.appendChild(makeInboxRow(item)));
   }
 
-  async function loadInbox({ silent } = { silent: false }) {
+  async function loadInbox() {
     const creds = Auth.getCreds();
-
     if (!creds) {
-      renderWelcome("");
-      analyseBtn.disabled = true;
-      metaMsg.style.display = "block";
       renderLoginPanel("");
       return;
     }
 
-    if (!silent) {
-      renderWelcome(Auth.getUsername() || "User");
-      analyseBtn.disabled = true;
-      metaMsg.style.display = "block";
-      setListStatus("Getting Emails...");
-    }
+    renderWelcome(Auth.getUsername() || "User");
+    setInboxStatus("Loading all inbox emails and sorting them...");
+    setResultPlaceholders();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/recent-emails", {
+      const response = await fetch("http://127.0.0.1:5000/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: creds.email,
           appPassword: creds.appPassword,
-          limit: 50,
         }),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         Auth.logout();
-        renderWelcome("");
         renderLoginPanel(data.error || "Login failed. Please try again.");
         return;
       }
 
-    
-      const emails = Array.isArray(data.emails) ? data.emails.slice().reverse() : [];
+      const emails = Array.isArray(data.emails) ? data.emails : [];
+      renderInboxList(emails);
+      renderSortedLists(emails);
 
-      renderEmailList(emails);
-      hideNewMailBar(); 
-
-    } catch (err) {
-      console.error(err);
-      if (!silent) {
-        setListStatus("Network error. Make sure your backend is running on port 5000.");
+      if (emails.length > 0) {
+        openEmail(emails[0]);
+      } else {
+        renderWelcome(Auth.getUsername() || "User");
       }
+    } catch (error) {
+      console.error(error);
+      setInboxStatus("Network error. Make sure the backend is running on port 5000.");
+      setResultPlaceholders();
     }
   }
 
-  async function checkForNewEmails() {
-    if (checking) return;
-    checking = true;
+  refreshBtn?.addEventListener("click", loadInbox);
 
-    const creds = Auth.getCreds();
-    if (!creds) {
-      checking = false;
-      return;
+  analyseBtn?.addEventListener("click", () => {
+    if (comingSoonOverlay) {
+      comingSoonOverlay.classList.add("is-open");
+      comingSoonOverlay.setAttribute("aria-hidden", "false");
     }
-
-    try {
-      const response = await fetch("http://127.0.0.1:5000/api/recent-emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: creds.email,
-          appPassword: creds.appPassword,
-          limit: 20, 
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        checking = false;
-        return;
-      }
-
-     
-      const incoming = Array.isArray(data.emails) ? data.emails.slice().reverse() : [];
-
-      const incomingKeys = incoming.map(getEmailKey);
-
-      let newCount = 0;
-      for (const k of incomingKeys) {
-        if (!lastKnownKeys.has(k)) newCount++;
-      }
-
-      if (newCount > 0) {
-        showNewMailBar(newCount);
-      }
-
-    } catch (e) {
-    
-    } finally {
-      checking = false;
-    }
-  }
-
-  let watcherTimer = null;
-  function startNewMailWatcher() {
-    if (watcherTimer) return;
-    watcherTimer = setInterval(checkForNewEmails, 15000);
-  }
-
-  newMailBar.addEventListener("click", () => {
-    loadInbox({ silent: true });
   });
 
-  window.loadInbox = () => loadInbox({ silent: false });
-
-  analyseBtn.addEventListener("click", () => {
-    alert("Analysis logic will connect here next.");
+  closeComingSoonBtn?.addEventListener("click", () => {
+    comingSoonOverlay?.classList.remove("is-open");
+    comingSoonOverlay?.setAttribute("aria-hidden", "true");
   });
 
-  loadInbox({ silent: false });
+  comingSoonOverlay?.addEventListener("click", (event) => {
+    if (event.target === comingSoonOverlay) {
+      comingSoonOverlay.classList.remove("is-open");
+      comingSoonOverlay.setAttribute("aria-hidden", "true");
+    }
+  });
 
-  if (Auth.getCreds()) startNewMailWatcher();
+  window.loadInbox = loadInbox;
+  loadInbox();
 });

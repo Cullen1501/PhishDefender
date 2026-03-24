@@ -2,36 +2,86 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PhishDefender - Phishing Detection</title>
+  <title>PhishDefender - Upload Inbox</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
-<body class="page-analyse">
+<body class="page-upload">
   <div id="headerContainer"></div>
 
-  <div class="analyse-page">
-    <div class="page-header">
-      <div class="page-title">Analyse Email</div>
-      <div class="page-description">
-        Select an email from the inbox to view and run analysis.
-      </div>
-    </div>
-
-    <div class="mail-layout">
-      <div class="viewer">
-        <div class="viewer-placeholder">
-          Select an email from the list to view it here.
+  <main class="upload-page">
+    <section class="upload-shell">
+      <div class="upload-intro">
+        <div>
+          <h1 class="page-title">Inbox Analysis Workspace</h1>
+          <p class="page-description">
+            Log in with Gmail, browse every inbox email, and let PhishDefender sort messages into possible phishing and legitimate groups.
+          </p>
         </div>
       </div>
 
-      <div class="list">
-        <div class="list-placeholder">Loading...</div>
-      </div>
-    </div>
+      <section class="top-workspace">
+        <aside class="inbox-sidebar">
+          <div class="panel-heading">
+            <h2>Inbox Access</h2>
+            <button id="refreshInboxBtn" class="small-action-btn" type="button">Refresh Inbox</button>
+          </div>
+          <div class="list"></div>
+        </aside>
 
-    <div class="action-bar">
-      <button class="analyse-btn" disabled>Analyse Selected Email</button>
-      <div class="selected-meta" id="noSelectionMsg">No Email Selected</div>
+        <section class="viewer-panel">
+          <div class="panel-heading">
+            <h2>Selected Email</h2>
+            <div class="viewer-status" id="viewerStatus">No Email Selected</div>
+          </div>
+          <div class="viewer">
+            <div class="viewer-placeholder">
+              <h3>Welcome</h3>
+              <p>Select an email from the inbox panel to view it here.</p>
+              <hr>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="results-workspace">
+        <div class="result-panel phishing-panel">
+          <div class="panel-heading">
+            <h2>Possible Phishing Emails</h2>
+            <span id="phishingCount" class="panel-count">0</span>
+          </div>
+          <div class="result-list" id="phishingList">
+            <div class="result-placeholder">Emails predicted as phishing will appear here.</div>
+          </div>
+        </div>
+
+        <div class="results-middle">
+          <button class="analyse-btn" id="analyseBtn" type="button">Analyse Results</button>
+          <p class="results-middle-text">
+            See why the model made each decision.
+          </p>
+        </div>
+
+        <div class="result-panel legitimate-panel">
+          <div class="panel-heading">
+            <h2>Possible Legitimate Emails</h2>
+            <span id="legitimateCount" class="panel-count">0</span>
+          </div>
+          <div class="result-list" id="legitimateList">
+            <div class="result-placeholder">Emails predicted as legitimate will appear here.</div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="coming-soon-overlay" id="comingSoonOverlay" aria-hidden="true">
+    <div class="coming-soon-modal">
+      <button class="coming-soon-close" id="closeComingSoonBtn" type="button">×</button>
+      <h3>Analyse Page Coming Soon</h3>
+      <p>
+        The dedicated explanation page is still being built. For now, this workspace shows the sorted inbox and selected email view.
+      </p>
     </div>
   </div>
 

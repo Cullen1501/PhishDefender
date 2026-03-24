@@ -1,23 +1,25 @@
 """
 email_service.py
 
-email retrieval logic
-connects to gmail via IMAP and extracts the most recent emails
+Gmail IMAP retrieval logic used by the frontend inbox.
+Fetches all inbox emails and returns decoded subject, sender, date and body.
 """
 
-import imaplib
 import email
+import imaplib
+import re
 from email.header import decode_header
 
 IMAP_SERVER = "imap.gmail.com"
 IMAP_PORT = 993
+HTML_TAG_RE = re.compile(r"<[^>]+>")
+WHITESPACE_RE = re.compile(r"\s+")
 
-# Decodes MIME-encoded email headers (e.g UTF-8 encoded subjects)
-def _decode_mime_header(value: str) -> str: 
 
+def _decode_mime_header(value: str) -> str:
     if not value:
         return ""
-    
+
     decoded_parts = decode_header(value)
     decoded_string = ""
 
@@ -29,70 +31,91 @@ def _decode_mime_header(value: str) -> str:
 
     return decoded_string
 
-"""
-Connects to Gmail via IMAP and retreives the most recent emails
-"""
-def fetch_recent_emails(gmail_address: str, app_password: str, limit: int = 50) -> list:
 
-    # Establish secure IMAP SSL connection
+def _clean_text(value: str) -> str:
+    if not value:
+        return ""
+    text = HTML_TAG_RE.sub(" ", value)
+    text = WHITESPACE_RE.sub(" ", text)
+    return text.strip()
+
+
+def _extract_body(msg) -> str:
+    plain_body = ""
+    html_body = ""
+
+    if msg.is_multipart():
+        for part in msg.walk():
+            content_type = part.get_content_type()
+            content_disposition = str(part.get("Content-Disposition") or "")
+
+            if "attachment" in content_disposition.lower():
+                continue
+
+            payload = part.get_payload(decode=True)
+            if payload is None:
+                continue
+
+            decoded = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+
+            if content_type == "text/plain" and not plain_body:
+                plain_body = decoded
+            elif content_type == "text/html" and not html_body:
+                html_body = decoded
+    else:
+        payload = msg.get_payload(decode=True)
+        if payload:
+            decoded = payload.decode(msg.get_content_charset() or "utf-8", errors="replace")
+            if msg.get_content_type() == "text/html":
+                html_body = decoded
+            else:
+                plain_body = decoded
+
+    return _clean_text(plain_body or html_body)
+
+
+def fetch_all_emails(gmail_address: str, app_password: str) -> list:
     mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
-
-    # Login using app password 
     mail.login(gmail_address, app_password)
-
-    # Select inbox folder
     mail.select("inbox")
 
-    # Retrive all email IDs
     status, messages = mail.search(None, "ALL")
-    email_ids = messages[0].split()
+    if status != "OK":
+        mail.logout()
+        raise RuntimeError("Could not read inbox message IDs.")
 
+    email_ids = messages[0].split()
     if not email_ids:
         mail.logout()
         return []
-    
-    # Get last N emails
-    recent_ids = email_ids[-limit:]
 
     emails = []
 
-    for email_id in recent_ids:
+    for email_id in reversed(email_ids):
         status, msg_data = mail.fetch(email_id, "(RFC822)")
+        if status != "OK":
+            continue
 
         for response_part in msg_data:
-            if isinstance(response_part, tuple):
-                msg = email.message_from_bytes(response_part[1])
+            if not isinstance(response_part, tuple):
+                continue
 
-                sender = _decode_mime_header(msg.get("From", ""))
-                subject = _decode_mime_header(msg.get("Subject", ""))
+            msg = email.message_from_bytes(response_part[1])
+            sender = _decode_mime_header(msg.get("From", ""))
+            subject = _decode_mime_header(msg.get("Subject", "")) or "(No subject)"
+            date = _decode_mime_header(msg.get("Date", ""))
+            message_id = _decode_mime_header(msg.get("Message-ID", "")) or email_id.decode(errors="ignore")
+            body = _extract_body(msg)[:5000]
 
-                body = ""
+            emails.append({
+                "id": email_id.decode(errors="ignore"),
+                "messageId": message_id,
+                "from": sender,
+                "subject": subject,
+                "date": date,
+                "body": body,
+            })
+            break
 
-                # Handle multipart emails
-                if msg.is_multipart():
-                    for part in msg.walk():
-                        content_type = part.get_content_type()
-                        content_disposition = str(part.get("Content-Disposition"))
-
-                        if content_type == "text/plain" and "attachment" not in content_disposition:
-                            payload = part.get_payload(decode=True)
-                            body = payload.decode(
-                                part.get_content_charset() or "utf-8",
-                                errors="replace"
-                            )
-                            break
-                else:
-                    payload = msg.get_payload(decode=True)
-                    body = payload.decode(
-                        msg.get_content_charset() or "utf-8",
-                        errors="replace"
-                    )
-                
-                emails.append({
-                    "from": sender,
-                    "subject": subject,
-                    "body": body[:2000] # limit body length for saftey
-                })
-    
     mail.logout()
     return emails

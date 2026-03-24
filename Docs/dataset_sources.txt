@@ -1,0 +1,33 @@
+Dataset 1:
+Name: Spam or real Email dataset
+Source: Kaggle
+Link: https://www.kaggle.com/datasets/abdulwadood11220/spam-or-real-email-dataset/data
+Description: a dataset of 5,000 emails labelled as "sapm" or "ham",
+                used to train and evaluate machine learning models for 
+                email clasification and phishing detection 
+Date Accessed: 10/03/2026
+
+Dataset 2.1:
+Name: PhishingEmailDataset
+Source: Kaggle
+Link: https://www.kaggle.com/datasets/amineipad/phishingemaildataset
+Description: a dataset of real corporate emails from Enron corporation used as 
+                examples of legitimate email communication. it is commonly used
+                in email classification and natural language processing tasks
+Date Accessed: 10/03/2026
+
+Dataset 2.2:
+Name: PhishingEmailDataset
+Source: Kaggle
+Link: https://www.kaggle.com/datasets/amineipad/phishingemaildataset
+Description: A collection of phishing emails compiled by Jose Nazario for Cybersecuirty research.
+                The dataseet contains examples of malicious emails desgined to trick users
+                into revealling sensitive information.
+Date Accessed: 10/03/2026
+
+Dataset 3:
+Name: The Enron Email Dataset
+Source: kaggle
+Link: https://www.kaggle.com/datasets/wcukierski/enron-email-dataset/data
+Description: 
+Date Accessed: 14/03/2026

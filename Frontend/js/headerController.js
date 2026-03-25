@@ -25,8 +25,8 @@ function initHeaderAuth() {
       if (typeof window.loadInbox === "function") window.loadInbox();
     } else {
       // No popup anymore — send them to Analyse page to login in-panel
-      if (!location.pathname.endsWith("upload.html")) {
-        location.href = "upload.html";
+      if (!location.pathname.endsWith("index.html")) {
+        location.href = "index.html";
       } else {
         // already on upload, show panel by reloading inbox state
         if (typeof window.loadInbox === "function") window.loadInbox();

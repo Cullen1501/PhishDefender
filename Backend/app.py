@@ -6,17 +6,30 @@ from pathlib import Path
 import imaplib
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from email_service import fetch_all_emails
 
-app = Flask(__name__)
-CORS(app)
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "Frontend"
 MODELS_DIR = BASE_DIR / "models"
 DATA_DIR = BASE_DIR / "data"
+
+app = Flask (
+    __name__,
+    static_folder=str(FRONTEND_DIR),
+    static_url_path=""
+)
+CORS(app)
+
+@app.route("/")
+def serve_index():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+@app.route("/<path:filename>")
+def serve_frontend_file(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
 
 MODEL = joblib.load(MODELS_DIR / "phishing_model.pkl")
 VECTORIZER = joblib.load(MODELS_DIR / "vectorizer.pkl")

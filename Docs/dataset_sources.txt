@@ -26,11 +26,10 @@ Description: A collection of phishing emails compiled by Jose Nazario for Cybers
 Date Accessed: 10/03/2026
 
 Dataset 3:
-Name: The Enron Email Dataset
-Source: kaggle
-Link: https://www.kaggle.com/datasets/wcukierski/enron-email-dataset/data
-Description: 
-Date Accessed: 14/03/2026
+Name: Phishing Email detection
+Source: Kaggle
+Link: https://www.kaggle.com/datasets/subhajournal/phishingemails
+Date Accessed: 11/03/2026
 
 Dataset 4:
 Name: The Majestc Millon

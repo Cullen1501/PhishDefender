@@ -75,6 +75,7 @@ def _extract_body(msg) -> str:
 
 
 def fetch_all_emails(gmail_address: str, app_password: str) -> list:
+
     mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
     mail.login(gmail_address, app_password)
     mail.select("inbox")

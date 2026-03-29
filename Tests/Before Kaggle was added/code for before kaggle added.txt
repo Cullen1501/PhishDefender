@@ -55,17 +55,14 @@ spam_train_path = "data/train.csv"
 spam_test_path = "data/test.csv"
 enron_path = "data/Enron legit.csv"
 nazario_path = "data/Nazario Phishing.csv"
-phish_kaggle_path = "data/Phishing_Email.csv"
 
 spam_train = pd.read_csv(spam_train_path)
 enron = pd.read_csv(enron_path)
 nazario = pd.read_csv(nazario_path)
-phish_kaggle = pd.read_csv(phish_kaggle_path)
 
 print("Spam train columns:", spam_train.columns.tolist())
 print("Enron columns:", enron.columns.tolist())
 print("Nazario columns:", nazario.columns.tolist())
-print("Kaggle phishing columns:", phish_kaggle.columns.tolist())
 print()
 
 # Raw label checks
@@ -153,44 +150,11 @@ print("Nazario labels after mapping:")
 print(nazario["label"].value_counts(dropna=False))
 print()
 
-# ---------- Kaggle Phishing Dataset ----------
-phish_kaggle = phish_kaggle[["Email Text", "Email Type"]].copy()
-
-phish_kaggle["Email Text"] = phish_kaggle["Email Text"].fillna("").astype(str).str.strip()
-phish_kaggle["Email Type"] = phish_kaggle["Email Type"].fillna("").astype(str).str.strip().str.lower()
-
-# rename to match your project format
-phish_kaggle = phish_kaggle.rename(columns={
-    "Email Text": "text",
-    "Email Type": "label"
-})
-
-# map labels to your format
-phish_kaggle["label"] = phish_kaggle["label"].replace({
-    "phishing email": "phishing",
-    "safe email": "legitimate",
-    "phishing": "phishing",
-    "legitimate": "legitimate"
-})
-
-print("Kaggle phishing labels before filtering:")
-print(phish_kaggle["label"].value_counts(dropna=False))
-print()
-
-# keep only phishing rows if that is what you want from this dataset
-phish_kaggle = phish_kaggle[phish_kaggle["label"] == "phishing"]
-
-print("Kaggle phishing labels after filtering:")
-print(phish_kaggle["label"].value_counts(dropna=False))
-print()
-
-phish_kaggle = phish_kaggle[["text", "label"]]
-
 # ==================================================
 # 3. Combine Datasets
 # ==================================================
 
-data = pd.concat([spam_train, enron, nazario, phish_kaggle], ignore_index=True)
+data = pd.concat([spam_train, enron, nazario], ignore_index=True)
 
 print("Combined dataset size before cleaning:", len(data))
 print()

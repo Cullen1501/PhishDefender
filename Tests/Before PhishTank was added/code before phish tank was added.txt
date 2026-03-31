@@ -1,0 +1,410 @@
+import os
+import joblib
+import pandas as pd
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from sklearn.model_selection import learning_curve
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix
+)
+
+def save_learning_curve(estimator, X, y, model_name, save_path):
+    train_sizes, train_scores, test_scores = learning_curve(
+        estimator,
+        X,
+        y,
+        cv=5,
+        scoring="f1_weighted",
+        train_sizes=np.linspace(0.1, 1.0, 5),
+        n_jobs=-1
+    )
+
+    train_mean = train_scores.mean(axis=1)
+    test_mean = test_scores.mean(axis=1)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(train_sizes, train_mean, marker="o", label="Training score")
+    plt.plot(train_sizes, test_mean, marker="o", label="Validation score")
+    plt.title(f"Learning Curve - {model_name}")
+    plt.xlabel("Training Examples")
+    plt.ylabel("F1 Score")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+# ==================================================
+# 1. Load Datasets
+# ==================================================
+
+spam_train_path = "data/train.csv"
+spam_test_path = "data/test.csv"
+enron_path = "data/Enron legit.csv"
+nazario_path = "data/Nazario Phishing.csv"
+phish_kaggle_path = "data/Phishing_Email.csv"
+
+spam_train = pd.read_csv(spam_train_path)
+enron = pd.read_csv(enron_path)
+nazario = pd.read_csv(nazario_path)
+phish_kaggle = pd.read_csv(phish_kaggle_path)
+
+print("Spam train columns:", spam_train.columns.tolist())
+print("Enron columns:", enron.columns.tolist())
+print("Nazario columns:", nazario.columns.tolist())
+print("Kaggle phishing columns:", phish_kaggle.columns.tolist())
+print()
+
+# Raw label checks
+if "label" in spam_train.columns:
+    print("Spam train raw label counts:")
+    print(spam_train["label"].value_counts(dropna=False))
+    print()
+else:
+    print("Spam train has no 'label' column.")
+    print()
+
+if "label" in enron.columns:
+    print("Enron raw label counts:")
+    print(enron["label"].value_counts(dropna=False))
+    print()
+else:
+    print("Enron has no 'label' column. It will be treated as legitimate.")
+    print()
+
+if "label" in nazario.columns:
+    print("Nazario raw label counts:")
+    print(nazario["label"].value_counts(dropna=False))
+    print()
+else:
+    print("Nazario has no 'label' column. It will be treated as phishing.")
+    print()
+
+# ==================================================
+# 2. Clean / Standardise Data
+# ==================================================
+
+# ---------- Spam/Ham dataset ----------
+# Expected columns: text, label
+spam_train = spam_train[["text", "label"]].copy()
+spam_train["text"] = spam_train["text"].fillna("").astype(str).str.strip()
+spam_train["label"] = spam_train["label"].fillna("").astype(str).str.strip().str.lower()
+
+# Map known label variations to project labels
+spam_train["label"] = spam_train["label"].replace({
+    "spam": "phishing",
+    "ham": "legitimate",
+    "1": "phishing",
+    "0": "legitimate",
+    "phishing": "phishing",
+    "legitimate": "legitimate",
+    "safe": "legitimate",
+    "benign": "legitimate"
+})
+
+print("Spam labels after mapping:")
+print(spam_train["label"].value_counts(dropna=False))
+print()
+
+# ---------- Enron dataset ----------
+# Expected columns: subject, body, maybe label
+if "label" in enron.columns:
+    enron = enron[["subject", "body", "label"]].copy()
+    enron["label"] = enron["label"].fillna("legitimate").astype(str).str.strip().str.lower()
+else:
+    enron = enron[["subject", "body"]].copy()
+    enron["label"] = "legitimate"
+
+enron["subject"] = enron["subject"].fillna("").astype(str).str.strip()
+enron["body"] = enron["body"].fillna("").astype(str).str.strip()
+enron["text"] = (enron["subject"] + " " + enron["body"]).str.strip()
+
+enron["label"] = "legitimate"
+
+enron = enron[["text", "label"]]
+
+print("Enron labels after mapping:")
+print(enron["label"].value_counts(dropna=False))
+print()
+
+# ---------- Nazario dataset ----------
+# Treat as phishing-only unless you want to read labels from file
+nazario = nazario[["subject", "body"]].copy()
+nazario["subject"] = nazario["subject"].fillna("").astype(str).str.strip()
+nazario["body"] = nazario["body"].fillna("").astype(str).str.strip()
+nazario["text"] = (nazario["subject"] + " " + nazario["body"]).str.strip()
+nazario["label"] = "phishing"
+nazario = nazario[["text", "label"]]
+
+print("Nazario labels after mapping:")
+print(nazario["label"].value_counts(dropna=False))
+print()
+
+# ---------- Kaggle Phishing Dataset ----------
+phish_kaggle = phish_kaggle[["Email Text", "Email Type"]].copy()
+
+phish_kaggle["Email Text"] = phish_kaggle["Email Text"].fillna("").astype(str).str.strip()
+phish_kaggle["Email Type"] = phish_kaggle["Email Type"].fillna("").astype(str).str.strip().str.lower()
+
+# rename to match your project format
+phish_kaggle = phish_kaggle.rename(columns={
+    "Email Text": "text",
+    "Email Type": "label"
+})
+
+# map labels to your format
+phish_kaggle["label"] = phish_kaggle["label"].replace({
+    "phishing email": "phishing",
+    "safe email": "legitimate",
+    "phishing": "phishing",
+    "legitimate": "legitimate"
+})
+
+print("Kaggle phishing labels before filtering:")
+print(phish_kaggle["label"].value_counts(dropna=False))
+print()
+
+# keep only phishing rows if that is what you want from this dataset
+phish_kaggle = phish_kaggle[phish_kaggle["label"] == "phishing"]
+
+print("Kaggle phishing labels after filtering:")
+print(phish_kaggle["label"].value_counts(dropna=False))
+print()
+
+phish_kaggle = phish_kaggle[["text", "label"]]
+
+# ==================================================
+# 3. Combine Datasets
+# ==================================================
+
+data = pd.concat([spam_train, enron, nazario, phish_kaggle], ignore_index=True)
+
+print("Combined dataset size before cleaning:", len(data))
+print()
+print("Labels before cleaning/filtering:")
+print(data["label"].value_counts(dropna=False))
+print()
+
+# Remove empty rows
+data["text"] = data["text"].fillna("").astype(str).str.strip()
+data["label"] = data["label"].fillna("").astype(str).str.strip().str.lower()
+data = data[(data["text"] != "") & (data["label"] != "")]
+
+print("Labels before final phishing/legitimate filter:")
+print(data["label"].value_counts(dropna=False))
+print()
+
+# Keep only expected labels
+data = data[data["label"].isin(["phishing", "legitimate"])]
+
+print("Labels after final phishing/legitimate filter:")
+print(data["label"].value_counts(dropna=False))
+print()
+
+# Remove duplicates
+data = data.drop_duplicates(subset=["text", "label"]).reset_index(drop=True)
+
+print("Combined dataset size after cleaning:", len(data))
+print()
+print("Final label counts:")
+print(data["label"].value_counts(dropna=False))
+print()
+
+# Safety check
+if data["label"].nunique() < 2:
+    raise ValueError(
+        "Training data only contains one class after cleaning. "
+        "You need both 'phishing' and 'legitimate' examples."
+    )
+
+# ==================================================
+# 4. Train / Test Split
+# ==================================================
+
+X = data["text"]
+y = data["label"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+print("Training set label counts:")
+print(y_train.value_counts(dropna=False))
+print()
+
+print("Test set label counts:")
+print(y_test.value_counts(dropna=False))
+print()
+
+# ==================================================
+# 5. TF-IDF Vectorization
+# ==================================================
+
+vectorizer = TfidfVectorizer(
+    stop_words="english",
+    max_features=10000,
+    ngram_range=(1, 2)
+)
+
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# ==================================================
+# 6. Train and Compare Models
+# ==================================================
+
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "Naive Bayes": MultinomialNB(),
+    "SVM": LinearSVC()
+}
+
+results = []
+best_model = None
+best_model_name = None
+best_f1 = 0.0
+
+for name, model in models.items():
+    print(f"\n{'=' * 50}")
+    print(f"MODEL: {name}")
+    print(f"{'=' * 50}")
+
+    model.fit(X_train_vec, y_train)
+    predictions = model.predict(X_test_vec)
+
+    accuracy = accuracy_score(y_test, predictions)
+    precision = precision_score(y_test, predictions, pos_label="phishing", zero_division=0)
+    recall = recall_score(y_test, predictions, pos_label="phishing", zero_division=0)
+    f1 = f1_score(y_test, predictions, pos_label="phishing", zero_division=0)
+
+    print(f"Accuracy : {accuracy:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall   : {recall:.4f}")
+    print(f"F1-score : {f1:.4f}")
+
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(y_test, predictions, labels=["legitimate", "phishing"]))
+
+    print("\nClassification Report:")
+    print(classification_report(y_test, predictions, zero_division=0))
+
+    results.append({
+        "model": name,
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1
+    })
+
+    if f1 > best_f1:
+        best_f1 = f1
+        best_model = model
+        best_model_name = name
+
+# ==================================================
+# 7. Save Best Model + Results
+# ==================================================
+
+os.makedirs("models", exist_ok=True)
+
+joblib.dump(best_model, "models/phishing_model.pkl")
+joblib.dump(vectorizer, "models/vectorizer.pkl")
+
+results_df = pd.DataFrame(results)
+results_df.to_csv("models/model_results.csv", index=False)
+
+# Save model comparison graph
+plt.figure(figsize=(8, 5))
+plt.bar(results_df["model"], results_df["f1_score"])
+plt.title("Model Comparison by F1 Score")
+plt.xlabel("Model")
+plt.ylabel("F1 Score")
+plt.xticks(rotation=15)
+plt.tight_layout()
+plt.savefig("models/model_comparison.png")
+plt.close()
+
+print("Saved model comparison graph to: models/model_comparison.png")
+
+print("\n" + "=" * 50)
+print(f"Best model: {best_model_name}")
+print(f"Best F1-score: {best_f1:.4f}")
+print("Saved model to: models/phishing_model.pkl")
+print("Saved vectorizer to: models/vectorizer.pkl")
+print("Saved results to: models/model_results.csv")
+print("=" * 50)
+
+# Save learning curve for the best model
+
+save_learning_curve(
+    best_model,
+    X_train_vec,
+    y_train,
+    best_model_name,
+    "models/learning_curve.png"
+)
+
+print("Saved learning curve to: models/learning_curve.png")
+
+# Save confusion matrix for best model
+best_predictions = best_model.predict(X_test_vec)
+
+plt.figure(figsize=(6, 5))
+ConfusionMatrixDisplay.from_predictions(
+    y_test,
+    best_predictions,
+    labels=["legitimate", "phishing"],
+    cmap="Blues"
+)
+plt.title(f"Confusion Matrix - {best_model_name}")
+plt.tight_layout()
+plt.savefig("models/confusion_matrix.png")
+plt.close()
+
+print("Saved confusion matrix to: models/confusion_matrix.png")
+
+# ==================================================
+# 8. Test on data/test.csv
+# ==================================================
+
+if os.path.exists(spam_test_path):
+    spam_test = pd.read_csv(spam_test_path)
+    print("\nFound data/test.csv")
+
+    if "text" in spam_test.columns:
+        spam_test["text"] = spam_test["text"].fillna("").astype(str).str.strip()
+        spam_test = spam_test[spam_test["text"] != ""]
+
+        spam_test_vec = vectorizer.transform(spam_test["text"])
+        spam_test["predicted_label"] = best_model.predict(spam_test_vec)
+
+        if hasattr(best_model, "predict_proba"):
+            probs = best_model.predict_proba(spam_test_vec)
+            class_index = list(best_model.classes_).index("phishing")
+            spam_test["phishing_confidence"] = probs[:, class_index]
+        else:
+            spam_test["phishing_confidence"] = None
+
+        spam_test.to_csv("models/test_predictions.csv", index=False)
+        print("Saved test predictions to: models/test_predictions.csv")
+    else:
+        print("test.csv does not contain a 'text' column, so predictions were skipped.")
+else:
+    print("\ndata/test.csv not found, so external test predictions were skipped.")

@@ -591,6 +591,11 @@ for name, model in models.items():
     model.fit(X_train_vec, y_train)
     predictions = model.predict(X_test_vec)
 
+    report = classification_report(y_test, predictions, zero_division=0)
+
+    with open(f"models/{name}_classification_report.txt", "w") as f:
+        f.write(report)
+
     accuracy = accuracy_score(y_test, predictions)
     precision = precision_score(y_test, predictions, pos_label="phishing", zero_division=0)
     recall = recall_score(y_test, predictions, pos_label="phishing", zero_division=0)
@@ -693,6 +698,36 @@ print("- models/learning_curve.png")
 # ----------------------------
 
 best_predictions = best_model.predict(X_test_vec)
+
+best_report = classification_report(y_test, best_predictions, zero_division=0)
+
+with open("models/best_model_classification_report.txt", "w")as f:
+    f.write(best_report)
+
+# Save classification report for this model
+report = classification_report(y_test, predictions, zero_division=0)
+with open(f"models/{name.lower().replace(' ', '_')}_classification_report.txt", "w") as f:
+    f.write(report)
+    
+# Save false positives and false negatives for this model
+best_test_results = pd.DataFrame({
+    "text": X_test.reset_index(drop=True),
+    "actual": y_test.reset_index(drop=True),
+    "predicted": pd.Series(best_predictions)
+})
+
+false_negatives = best_test_results[
+    (best_test_results["actual"] == "phishing") &
+    (best_test_results["predicted"] == "legitimate")
+]
+
+false_positives = best_test_results[
+    (best_test_results["actual"] == "legitimate") &
+    (best_test_results["predicted"] == "phishing")
+]
+
+false_negatives.to_csv("models/false_negatives.csv", index=False)
+false_positives.to_csv("models/false_positives.csv", index=False)
 
 plt.figure(figsize=(6, 5))
 ConfusionMatrixDisplay.from_predictions(

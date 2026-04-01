@@ -1,77 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>PhishDefender - Phishing Detection</title>
+    <title>PhishDefender - About</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body>
+<body class="page-about">
 
     <!-- Header -->
-    <div id="headerContainer"></div>
+     <div id="headerContainer"></div>
 
-    <!-- =================================== -->
+     <main class="about-page">
+        <div class="about-container">
 
-    <div class="about-section">
-        <div class="about-title"> About This Project</div>
-        <div class="about-text introduction">
-            Phishing remains one of the most persistent cybersecurity threats today.
-            Research shows that over 40% of organisations experience phishing attempts daily, 
-            with more that 75% facing attacks each month. Around 30% of phishing emails are opened, 
-            demonstrating the continued effectivness of social engineering techniques. 
+            <!-- INTRO -->
+            <section class="about-intro">
+                <h1 class="page-title">About PhishDefender</h1>
+                <p class="page-description">
+                    A real-time phishing detection system combining machine learning and 
+                    explainable AI to identify and explain suspicous emails.
+                </p>
 
-            Traditional detection methods struggle to keep pace. nearly two thirds of phishing campiegns last 
-            under two hours, meaning many attacks disappear before blacklist systems can update. 
-            Inital detection rates can fall below 20%, leaving organisations exposed during the most critical early stage.
+                <p>
+                    <strong>Developed as part of Cybersecurity and Digital Forensics Honours Project 2025/26 </strong>
+                </p>
+            </section>
 
-            This project devlops a real time phishing detection system using machine learning combined with Explaianble AI
-            (XAI). By integrating techncial and behavioural insights, the system aims to deliver accurate, 
-            transparent, and trustworthy phishing detection for modern email enviroments.
+            <!-- CONTENT -->
+            <section class="about-sections">
 
-            (De Bona & Paci, 2020; Sheng et al, 2009; Tanimmu & Shiaeles, 2022)
+                <!-- ABOUT -->
+                <div class="about-panel about-panel-large">
+                    <div class="panel-heading">
+                        <h2>Introduction</h2>
+                    </div>
+                    <div class="about-panel-content">
+                        <p>
+                            Phishing remains one of the most persisten cybersecuirty threats today.
+                            Research shows that over 40% of organsiations experience phishing attempts daily,
+                            with moer than 75% facing attacks each month. Around 30% of phishing emails are opened,
+                            demonstrating the continued effectiveness of social engineering techniques.
+                        </p>
+
+                        <p>
+                            Traditional detection methods struggle to keep pace. nearly two thirds of phishing campigns
+                            last under two hours, meaning many attacks disappear before blacklist systems can update.
+                            Initial detection rates can fall below 20%, leaving organisations exposed during the most 
+                            critical early stage.
+                        </p>
+
+                        <p>
+                            This project devlops a real-time phishing detection system using machine learning combined
+                            with Explainable AI (XAI). By integrating technical and behavioural insights, the system
+                            aims to deliver accurate, transparent, and trustworthy phishing detection for modern email
+                            enviroments.
+                        </p>
+
+                        <p>
+                            <strong>(De Bona & Paci, 2020; Sheng et al. 2009; Tanimu & Shiaeles, 2022)</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PURPOSE -->
+                <div class="about-panel">
+                    <div class="panel-heading">
+                        <h2>Purpose</h2>
+                    </div>
+                    <div class="about-panel-content">
+                        <p>
+                            The aim of this project is to design and evaluate a real-time phishing detection system
+                            capable of accuratly classifying malicous emails while also providing transparent,
+                            interpretable explanations for each decision.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="about-panel">
+                    <div class="panel-heading">
+                        <h2>Importnace</h2>
+                    </div>
+                    <div class="about-panel-content">
+                        <p>
+                            By combining adaptive machine learning with explaianbility and behavioural insight,
+                            this system aims to improve trust, accountability, and practical deploymentof phishing
+                            detection in modern email enviroments. 
+                        </p>
+                    </div>
+                </div>
+
+                <!-- HOW IT WORKS -->
+                 <div class="about-panel">
+                    <div class="panel-heading">
+                        <h2>How To Use</h2>
+                    </div>
+                    <div class="about-panel-content">
+                        <p>
+                            Coming soon...
+                        </p>
+                    </div>
+                 </div>
+            </section>
         </div>
-    </div>
-
-    <div class="about-section">
-        <div class="about-title"> How To Use</div>
-        <div class="about-text how-to">
-             System usage instructions will be provided once backend implementation is complete.
-        </div>
-    </div>
-
-    <div class="about-section">
-        <div class="about-title"> Purpose Statement</div>
-        <div class="about-text purpose">
-            The aim of this project is to design and evaluate a real-time phishing detection system
-            capable of accuratly classifying malicous emails while providing transparent,
-            interpretable explanations for each decision.
-        </div>
-    </div>
-
-    <div class="about-section">
-        <div class="about-title">Why This Project Matters</div>
-        <div class="about-text matter">
-            By combining adaptive machine learning with explanability and behavioural insight, 
-            this system aims to imporve trsut, accountability, and practical deployment of 
-            phishing detection in modern email enviroments. 
-        </div>
-    </div>
-
-    <div class="about-section context-section">
-        <div class="about-text context">
-             Developed as part of a BEng (Hons) Cybersecurity & Digital Forenics degree at Edinbrugh Napier University
-        </div>
-    </div>
-
-    <!-- =================================== -->
-
+     </main>
     <!-- Footer -->
     <div id="footerContainer"></div>
 
-    <!-- Scripts -->
-    <script src="js/authController.js" defer></script>
     <script src="js/componentLoader.js" defer></script>
     <script src="js/headerController.js" defer></script>
 

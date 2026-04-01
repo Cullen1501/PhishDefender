@@ -200,46 +200,72 @@ Footer Styling
 About Page
 */
 .about-page {
-  width: 100%;
-  padding: 60px 20px;
-  margin-top: 80px;
-
-  display: flex;
-  flex-direction: column;
-  gap: 50px;
+  flex: 1;
+  padding: 40px;
 }
 
-.about-section {
-  width: min(850px, 92vw);
-  margin: 0 auto 50px;
-  background: rgba(0, 0, 0, 0.32);
+.about-container {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Intro */
+.about-intro {
+  background: rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 22px;
-  padding: 34px 36px;
+  padding: 30px;
+  backdrop-filter: blur(8px);
+  line-height: 38px;
+}
+
+/* Grid layout */
+.about-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+}
+
+/* Panels */
+.about-panel {
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 24px;
   backdrop-filter: blur(8px);
 }
 
-.about-title {
-  font-size: 42px;
-  font-weight: 900;
-  text-align: center;
-  color: #38dbf8;
-  margin-bottom: 18px;
+.about-panel-large {
+  grid-column: span 2;
 }
 
-.about-text {
-  font-size: 18px;
-  line-height: 1.8;
-  opacity: 0.95;
-
-  max-width: 720px;
-  margin: 0 auto;
-  text-align: center;
+/* Inner content box */
+.about-panel-content {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba (255, 255, 255, 0.10);
+  border-radius: 16px;
+  padding: 18px;
 }
 
-.about-section.context-section .about-text {
-  font-size: 16px;
-  font-weight: 700;
+/* Text */
+.about-panel-content p {
+  line-height: 1.7;
+  opacity: 0.92;
+  margin-bottom: 12px;
+}
+
+/* Resposive */
+@media (max-width: 1100px) {
+  .about-sections {
+    grid-template-columns: 1fr;
+  }
+  
+  .about-panel-large {
+    grid-column: span 1;
+  }
 }
 
 /*

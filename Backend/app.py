@@ -113,16 +113,26 @@ From: {sender}
 Body: {body}""".strip()
 
     text_vector = VECTORIZER.transform([combined_text])
+
     prediction = MODEL.predict(text_vector)[0]
 
-    confidence = None
+    phishing_confidence = None
+    legitimate_confidence = None
+
     if hasattr(MODEL, "predict_proba"):
         probs = MODEL.predict_proba(text_vector)[0]
-        class_index = list(MODEL.classes_).index("phishing")
-        confidence = float(probs[class_index])
+        classes = list(MODEL.classes_)
+
+        phishing_index = classes.index("phishing")
+        legitimate_index = classes.index("legitimate")
+
+        phishing_confidence = float(probs[phishing_index])
+        legitimate_confidence = float(probs[legitimate_index])
+
     elif hasattr(MODEL, "decision_function"):
         raw_score = float(MODEL.decision_function(text_vector)[0])
-        confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
+        phishing_confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
+        legitimate_confidence = 1.0 - phishing_confidence
 
     # Extract sender domain
     sender_domain = extract_sender_domain(sender)
@@ -135,7 +145,7 @@ Body: {body}""".strip()
 
     # Override phishing if trusted and not extremely high confidence
     if is_trusted and prediction == "phishing":
-        if confidence is None or confidence < 0.90:
+        if phishing_confidence is None or phishing_confidence < 0.90:
             prediction = "legitimate"
 
     print("\n--- Email Classification ---")
@@ -145,14 +155,17 @@ Body: {body}""".strip()
     print("Base domain:", base_domain)
     print("Trusted sender:", is_trusted)
     print("Prediction:", prediction)
-    print("Confidence:", confidence)
+    print("Phishing Confidence:", phishing_confidence)
+    print("Legitimate Confidence:", legitimate_confidence)
     print("----------------------------")
 
     enriched = dict(email_item)
     enriched["prediction"] = prediction
-    enriched["phishing_confidence"] = confidence
+    enriched["phishing_confidence"] = phishing_confidence
+    enriched["legitimate_confidence"] = legitimate_confidence
     enriched["sender_domain"] = sender_domain
     enriched["trusted_sender"] = is_trusted
+    
     return enriched
 
 

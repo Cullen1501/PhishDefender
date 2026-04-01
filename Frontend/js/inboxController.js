@@ -88,13 +88,17 @@ document.addEventListener("componentsLoaded", () => {
         <p><strong>Date:</strong> ${escapeHtml(emailObj.date || "")}</p>
         <p><strong>Prediction:</strong> ${escapeHtml(emailObj.prediction || "unknown")}</p>
         ${typeof emailObj.phishing_confidence === "number" ? `<p><strong>Phishing confidence:</strong> ${(emailObj.phishing_confidence * 100).toFixed(1)}%</p>` : ""}
+        ${typeof emailObj.legitimate_confidence === "number" ? `<p><strong>Legitimate confidence:</strong> ${(emailObj.legitimate_confidence * 100).toFixed(1)}%</p>` : ""}
         <hr>
         <div class="email-body">${escapeHtml(emailObj.body || "No email body available.")}</div>
       </div>
     `;
 
     if (viewerStatus) {
-      viewerStatus.textContent = emailObj.prediction === "phishing" ? "Viewing possible phishing email" : "Viewing possible legitimate email";
+      viewerStatus.textContent =
+        emailObj.prediction === "phishing"
+          ? "Viewing possible phishing email"
+          : "Viewing possible legitimate email";
     }
   }
 
@@ -118,7 +122,8 @@ document.addEventListener("componentsLoaded", () => {
     row.innerHTML = `
       <strong>${escapeHtml(emailObj.subject || "(No subject)")}</strong>
       <div class="email-item-meta">${escapeHtml(emailObj.from || "")}</div>
-      ${typeof emailObj.phishing_confidence === "number" ? `<div class="result-confidence">Confidence: ${(emailObj.phishing_confidence * 100).toFixed(1)}%</div>` : ""}
+      ${typeof emailObj.phishing_confidence === "number" ? `<div class="result-confidence">Phishing: ${(emailObj.phishing_confidence * 100).toFixed(1)}%</div>` : ""}
+      ${typeof emailObj.legitimate_confidence === "number" ? `<div class="result-confidence">Legitimate: ${(emailObj.legitimate_confidence * 100).toFixed(1)}%</div>` : ""}
     `;
     row.addEventListener("click", () => openEmail(emailObj));
     return row;

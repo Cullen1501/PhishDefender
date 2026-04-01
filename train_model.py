@@ -9,6 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
+from scipy.sparse import issparse
 from sklearn.metrics import (
     classification_report,
     accuracy_score,
@@ -83,12 +84,12 @@ def finalise_dataset(df, dataset_name):
     df["label"] = normalise_labels(df["label"])
 
     df = df[(df["text"] != "") & (df["label"].isin(["phishing", "legitimate"]))]
-    df = df.drop_duplicates(subset=["text", "label"]).reset_index(drop=True)
+    df = df.reset_index(drop=True)
 
     print(f"{dataset_name} labels after cleaning:")
     print(df["label"].value_counts(dropna=False))
     print()
-
+    
     return df
 
 
@@ -320,6 +321,119 @@ def save_learning_curve(estimator, X, y, model_name, save_path):
     plt.savefig(save_path)
     plt.close()
 
+# ----------------------------
+# H15. Error analysis helper Saves all misclassified emails and seperates false positives /false negatives 
+# ----------------------------
+
+def save_error_analysis(X_test, y_test, predictions, save_dir="models"):
+    results_df = pd.DataFrame({
+        "text": X_test.reset_index(drop=True),
+        "actual": y_test.reset_index(drop=True),
+        "predicted": pd.Series(predictions).reset_index(drop=True)
+    })
+def save_error_analysis(X_test, y_test, predictions, confidences=None, save_dir="models"):
+    results_df = pd.DataFrame({
+        "text": X_test.reset_index(drop=True),
+        "actual": y_test.reset_index(drop=True),
+        "predicted": pd.Series(predictions).reset_index(drop=True)
+    })
+
+    if confidences is not None:
+        results_df["phishing_confidence"] = pd.Series(confidences).reset_index(drop=True)
+
+    misclassified = results_df[results_df["actual"] != results_df["predicted"]].copy()
+
+    false_positives = misclassified[
+        (misclassified["actual"] == "legitimate") &
+        (misclassified["predicted"] == "phishing")
+    ].copy()
+
+    false_negatives = misclassified[
+        (misclassified["actual"] == "phishing") &
+        (misclassified["predicted"] == "legitimate")
+    ].copy()
+
+    misclassified.to_csv(f"{save_dir}/misclassified_emails.csv", index=False)
+    false_positives.to_csv(f"{save_dir}/false_positives.csv", index=False)
+    false_negatives.to_csv(f"{save_dir}/false_negatives.csv", index=False)
+
+    print("Saved error analysis files:")
+    print("- models/misclassified_emails.csv")
+    print("- models/false_positives.csv")
+    print("- models/false_negatives.csv")
+# ----------------------------
+# H16. Confidence Helper Adds phishing confidence where supported
+# ----------------------------
+
+def get_phishing_confidence(model, X_vec):
+    if hasattr(model, "predict_proba"):
+        probs = model.predict_proba(X_vec)
+        class_index = list(model.classes_).index("phishing")
+        return probs[:, class_index]
+    
+    return [None] * X_vec.shape[0]
+
+# ----------------------------
+# H17. Feature importance helper Saves top phishing and legitiamte terms for linear models
+# ----------------------------
+
+def save_feature_importance(model, vectorizer, top_n=20, save_dir="models"):
+    if not hasattr(model, "coef_"):
+        print("Feature importance skipped: this model does not expose coef_.")
+        return
+
+    # Get feature names
+    feature_names = np.array(vectorizer.get_feature_names_out())
+
+    # Flatten coefficients to 1D
+    coefficients = np.asarray(model.coef_).ravel()
+
+    # Safety check
+    if len(feature_names) != len(coefficients):
+        print("Feature importance skipped: feature and coefficient lengths do not match.")
+        print(f"Feature count     : {len(feature_names)}")
+        print(f"Coefficient count : {len(coefficients)}")
+        return
+
+    # Make sure top_n is not bigger than number of features
+    top_n = min(top_n, len(feature_names))
+
+    # Positive = phishing, negative = legitimate
+    top_phishing_idx = np.argsort(coefficients)[-top_n:][::-1]
+    top_legitimate_idx = np.argsort(coefficients)[:top_n]
+
+    phishing_df = pd.DataFrame({
+        "feature": feature_names[top_phishing_idx].tolist(),
+        "coefficient": coefficients[top_phishing_idx].tolist()
+    })
+
+    legitimate_df = pd.DataFrame({
+        "feature": feature_names[top_legitimate_idx].tolist(),
+        "coefficient": coefficients[top_legitimate_idx].tolist()
+    })
+
+    phishing_df.to_csv(f"{save_dir}/top_phishing_features.csv", index=False)
+    legitimate_df.to_csv(f"{save_dir}/top_legitimate_features.csv", index=False)
+
+    # Plot both together
+    combined_df = pd.concat([
+        legitimate_df.assign(group="Legitimate"),
+        phishing_df.assign(group="Phishing")
+    ], ignore_index=True)
+
+    plt.figure(figsize=(12, 8))
+    plt.barh(combined_df["feature"], combined_df["coefficient"])
+    plt.title("Top Feature Importance - Legitimate vs Phishing")
+    plt.xlabel("Coefficient Weight")
+    plt.ylabel("Feature")
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/feature_importance.png")
+    plt.close()
+
+    print("Saved feature importance files:")
+    print("- models/top_phishing_features.csv")
+    print("- models/top_legitimate_features.csv")
+    print("- models/feature_importance.png")
 
 # ============================================================
 # 1. LOAD DATASETS
@@ -422,6 +536,7 @@ print()
 # ----------------------------
 
 data = finalise_dataset(data, "Combined Dataset")
+data = data.drop_duplicates(subset=["text", "label"]).reset_index(drop=True)
 
 print("Combined dataset size after cleaning:", len(data))
 print()
@@ -582,6 +697,7 @@ results = []
 best_model = None
 best_model_name = None
 best_f1 = 0.0
+best_predictions = None
 
 for name, model in models.items():
     print("\n" + "-" * 50)
@@ -624,6 +740,7 @@ for name, model in models.items():
         best_f1 = f1
         best_model = model
         best_model_name = name
+        best_predictions = predictions
 
 
 # ============================================================
@@ -673,15 +790,13 @@ print("- models/model_results.csv")
 
 
 # ============================================================
-# 9. SAVE LEARNING CURVE AND CONFUSION MATRIX
+# 9. SAVE LEARNING CURVE, CONFUSION MATRIX, ERROR ANALYSIS, AND FEATURE IMPORTANCE
 # ============================================================
-
-print_section("9. SAVE LEARNING CURVE AND CONFUSION MATRIX")
+print_section("9. SAVE LEARNING CURVE, CONFUSION MATRIX, ERROR ANALYSIS, AND FEATURE IMPORTANCE")
 
 # ----------------------------
 # 9.1 Save learning curve
 # ----------------------------
-
 save_learning_curve(
     best_model,
     X_train_vec,
@@ -689,46 +804,22 @@ save_learning_curve(
     best_model_name,
     "models/learning_curve.png"
 )
-
 print("Saved learning curve to:")
 print("- models/learning_curve.png")
 
 # ----------------------------
-# 9.2 Save confusion matrix
+# 9.2 Save best model classification report
 # ----------------------------
-
-best_predictions = best_model.predict(X_test_vec)
-
 best_report = classification_report(y_test, best_predictions, zero_division=0)
-
-with open("models/best_model_classification_report.txt", "w")as f:
+with open("models/best_model_classification_report.txt", "w") as f:
     f.write(best_report)
 
-# Save classification report for this model
-report = classification_report(y_test, predictions, zero_division=0)
-with open(f"models/{name.lower().replace(' ', '_')}_classification_report.txt", "w") as f:
-    f.write(report)
-    
-# Save false positives and false negatives for this model
-best_test_results = pd.DataFrame({
-    "text": X_test.reset_index(drop=True),
-    "actual": y_test.reset_index(drop=True),
-    "predicted": pd.Series(best_predictions)
-})
+print("Saved best model classification report to:")
+print("- models/best_model_classification_report.txt")
 
-false_negatives = best_test_results[
-    (best_test_results["actual"] == "phishing") &
-    (best_test_results["predicted"] == "legitimate")
-]
-
-false_positives = best_test_results[
-    (best_test_results["actual"] == "legitimate") &
-    (best_test_results["predicted"] == "phishing")
-]
-
-false_negatives.to_csv("models/false_negatives.csv", index=False)
-false_positives.to_csv("models/false_positives.csv", index=False)
-
+# ----------------------------
+# 9.3 Save confusion matrix
+# ----------------------------
 plt.figure(figsize=(6, 5))
 ConfusionMatrixDisplay.from_predictions(
     y_test,
@@ -744,6 +835,22 @@ plt.close()
 print("Saved confusion matrix to:")
 print("- models/confusion_matrix.png")
 
+# ----------------------------
+# 9.4 Save error analysis
+# ----------------------------
+best_confidences = get_phishing_confidence(best_model, X_test_vec)
+save_error_analysis(
+    X_test,
+    y_test,
+    best_predictions,
+    confidences=best_confidences,
+    save_dir="models"
+)
+
+# ----------------------------
+# 9.5 Save feature importance
+# ----------------------------
+save_feature_importance(best_model, vectorizer, top_n=20, save_dir="models")
 
 # ============================================================
 # 10. TEST ON EXTERNAL TEST DATA

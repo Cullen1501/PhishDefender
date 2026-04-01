@@ -2,28 +2,17 @@ Dataset 1:
 Name: Spam or real Email dataset
 Source: Kaggle
 Link: https://www.kaggle.com/datasets/abdulwadood11220/spam-or-real-email-dataset/data
-Description: a dataset of 5,000 emails labelled as "sapm" or "ham",
-                used to train and evaluate machine learning models for 
-                email clasification and phishing detection 
 Date Accessed: 10/03/2026
+
+^^ test.csv & train.csv ^^
 
 Dataset 2.1:
 Name: PhishingEmailDataset
 Source: Kaggle
 Link: https://www.kaggle.com/datasets/amineipad/phishingemaildataset
-Description: a dataset of real corporate emails from Enron corporation used as 
-                examples of legitimate email communication. it is commonly used
-                in email classification and natural language processing tasks
 Date Accessed: 10/03/2026
 
-Dataset 2.2:
-Name: PhishingEmailDataset
-Source: Kaggle
-Link: https://www.kaggle.com/datasets/amineipad/phishingemaildataset
-Description: A collection of phishing emails compiled by Jose Nazario for Cybersecuirty research.
-                The dataseet contains examples of malicious emails desgined to trick users
-                into revealling sensitive information.
-Date Accessed: 10/03/2026
+^^ Nazario Phishing.csv & Enron Legit.csv ^^
 
 Dataset 3:
 Name: Phishing Email detection
@@ -31,9 +20,20 @@ Source: Kaggle
 Link: https://www.kaggle.com/datasets/subhajournal/phishingemails
 Date Accessed: 11/03/2026
 
+^^ Phishing_Email.csv
+
 Dataset 4:
+Name:
+Source: Kaggle
+Link: https://www.kaggle.com/datasets/naserabdullahalam/phishing-email-dataset
+Date Accessed: 11/03/2026
+
+^^ CEAS_08.csv ^^ 
+
+Dataset 5:
 Name: The Majestc Millon
 Source: Majestic
 Link: https://majestic.com/reports/majestic-million
-Description: A million trusted doamins
 Date Accessed: 18/03/2026
+
+^^ doamins.csv ^^

@@ -169,14 +169,8 @@ document.addEventListener("componentsLoaded", () => {
         <strong>${escapeHtml(Auth.getCreds()?.email || "")}</strong>
         <div class="login-summary-sub">Showing all inbox emails</div>
       </div>
-      <button id="logoutInlineBtn" type="button" class="secondary small-inline-btn">Logout</button>
     `;
     listPanel.appendChild(loginSummary);
-
-    document.getElementById("logoutInlineBtn")?.addEventListener("click", () => {
-      Auth.logout();
-      loadInbox();
-    });
 
     if (!emails.length) {
       const emptyState = document.createElement("div");

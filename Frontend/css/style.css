@@ -321,6 +321,12 @@ Upload Page / Inbox Workspace
   min-height: 0;
 }
 
+.inbox-sidebar .list {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
 .panel-heading {
   display: flex;
   align-items: center;
@@ -349,6 +355,12 @@ Upload Page / Inbox Workspace
 .small-inline-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
   color: #38dbf8;
+}
+
+.result-list {
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .list,

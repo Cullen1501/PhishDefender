@@ -143,10 +143,11 @@ Body: {body}""".strip()
         base_domain in trusted_domains
     )
 
-    # Override phishing if trusted and not extremely high confidence
-    if is_trusted and prediction == "phishing":
-        if phishing_confidence is None or phishing_confidence < 0.90:
-            prediction = "legitimate"
+#    # Override phishing if trusted and not extremely high confidence
+#    if is_trusted and prediction == "phishing":
+#        if phishing_confidence is None or phishing_confidence < 0.90:
+#            prediction = "legitimate"
+# During live inbox testing, i observed that because i was generating emails with either phishing or legitimate emails from phishdefender.sender@gmail.com it was just trusting that email address so this block was removed 
 
     print("\n--- Email Classification ---")
     print("Subject:", subject)

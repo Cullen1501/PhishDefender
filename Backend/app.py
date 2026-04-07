@@ -5,11 +5,14 @@ import imaplib
 import joblib
 import pandas as pd
 import numpy as np
+import re
+
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from lime.lime_text import LimeTextExplainer
 from email_service import fetch_all_emails
+from scipy.sparse import hstack, csr_matrix
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "Frontend"
@@ -104,21 +107,84 @@ def reduce_to_base_domain(domain: str) -> str:
         return ".".join(parts[-2:])
     return domain
 
+def normalise_email_text(text: str) -> str:
+    text = str(text or "")
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"(?i)\bsubject:\b", " ", text)
+    text = re.sub(r"(?i)\bfrom:\b", " ", text)
+    text = re.sub(r"(?i)\bbody:\b", " ", text)
+    return text.strip().lower()
+
+def count_links(text: str) -> str:
+    text = str(text or "")
+    return len(re.findall(r"https[s]?://|www\.", text, flags=re.IGNORECASE))
+
+def contains_urgent_words(text: str) -> int:
+    text = str(text or "").lower()
+    urgent_words = [
+        "urgent", "immediately", "suspended", "verify now",
+        "action required", "limited time", "warning", "alert"
+    ]
+    return int(any(word in text for word in urgent_words))
+
+def contains_account_words(text: str) -> int:
+    text = str(text or "").lower()
+    account_words = [
+        "account", "login", "sign in", "password", "username",
+        "verify", "authentication", "secuirty"
+    ]
+    return int(any(word in text for word in account_words))
+
+def contains_payment_words(text: str) -> int:
+    payment_words = [
+        "payment", "invoice", "bank", "card", "refund",
+        "billing", "transaction", "transfer"
+    ]
+    return int(any(word in text for word in payment_words))
+
+def exclamation_count(text: str) -> int:
+    return str(text or "").count("!")
+
+def uppercase_ratio(text: str) -> float:
+    text = str(text or "")
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return 0.0
+    upper = sum(1 for c in letters if c.isupper())
+    return upper / len(letters)
+
+def build_engineered_features_from_texts(texts):
+    features = pd.DataFrame({
+        "link_count": [count_links(text) for text in texts],
+        "has_urgent_words": [contains_urgent_words(text) for text in texts],
+        "has_account_words": [contains_account_words(text) for text in texts],
+        "has_payment_words": [contains_payment_words(text) for text in texts],
+        "exclamation_count": [exclamation_count(text) for text in texts],
+        "uppercase_ratio": [uppercase_ratio(text) for text in texts]
+    })
+    return csr_matrix(features.values)
+
+def build_model_input(texts):
+    cleaned_texts = [normalise_email_text(text) for text in texts]
+    text_vectors = VECTORIZER.transform(cleaned_texts)
+    extra_vectors = build_engineered_features_from_texts(cleaned_texts)
+    return hstack([text_vectors, extra_vectors])
+
 def predict_proba_for_lime(texts):
-    text_vectors = VECTORIZER.transform(texts)
+    model_input = build_model_input(texts)
 
     if hasattr(MODEL, "predict_proba"):
-        scores = MODEL.predict_proba(text_vectors)
-
+        return MODEL.predict_proba(model_input)
+    
     if hasattr(MODEL, "decision_function"):
-        scores = MODEL.decision_function(text_vectors)
+        scores = MODEL.decision_function(model_input)
 
         if len(scores.shape) == 1:
             probs_pos = 1 / (1 + np.exp(-scores))
             probs_neg = 1 - probs_pos
             return np.vstack([probs_neg, probs_pos]).T
         
-    predictions = MODEL.predict(text_vectors)
+    predictions = MODEL.predict(model_input)
     output = []
 
     for pred in predictions:
@@ -126,7 +192,7 @@ def predict_proba_for_lime(texts):
             output.append([0.0, 1.0])
         else:
             output.append([1.0, 0.0])
-    
+
     return np.array(output)
 
 def generate_lime_explanation(combined_text, predicted_label):
@@ -197,19 +263,17 @@ def classify_email(email_item: dict) -> dict:
     sender = (email_item.get("from") or "").strip()
     body = (email_item.get("body") or "").strip()
 
-    combined_text = f"""Subject: {subject}
-From: {sender}
-Body: {body}""".strip()
+    combined_text = f"""{sender} {subject} {body}""".strip()
+    cleaned_text = normalise_email_text(combined_text)
 
-    text_vector = VECTORIZER.transform([combined_text])
-
-    prediction = MODEL.predict(text_vector)[0]
+    model_input = build_model_input([cleaned_text])
+    prediction = MODEL.predict(model_input)[0]
 
     phishing_confidence = None
     legitimate_confidence = None
 
     if hasattr(MODEL, "predict_proba"):
-        probs = MODEL.predict_proba(text_vector)[0]
+        probs = MODEL.predict_proba(model_input)[0]
         classes = list(MODEL.classes_)
 
         phishing_index = classes.index("phishing")
@@ -219,7 +283,7 @@ Body: {body}""".strip()
         legitimate_confidence = float(probs[legitimate_index])
 
     elif hasattr(MODEL, "decision_function"):
-        raw_score = float(MODEL.decision_function(text_vector)[0])
+        raw_score = float(MODEL.decision_function(model_input)[0])
         phishing_confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
         legitimate_confidence = 1.0 - phishing_confidence
 
@@ -233,6 +297,43 @@ Body: {body}""".strip()
         sender_domain in trusted_domains or
         base_domain in trusted_domains
     )
+
+    engineered_details = {
+        "link_count": count_links(cleaned_text),
+        "has_urgent_words": bool(contains_urgent_words(cleaned_text)),
+        "has_account_words": bool(contains_account_words(cleaned_text)),
+        "has_payment_words": bool(contains_payment_words(cleaned_text)),
+        "exclamation_count": exclamation_count(cleaned_text),
+        "uppercase_ratio": round(uppercase_ratio(cleaned_text), 4)
+    }
+
+    explanation_summary = []
+
+    if prediction == "phishing":
+
+        if not is_trusted:
+            explanation_summary.append("Sender domain is not trusted")
+        
+        if engineered_details["link_count"] > 0:
+            explanation_summary.append("Email contains links")
+
+        if engineered_details["has_urgent_words"]:
+            explanation_summary.append("Uses urgent or theratening language")
+        
+        if engineered_details["has_account_words"]:
+            explanation_summary.append("request account or login information")
+        
+        if engineered_details["has_payment_words"]:
+            explanation_summary.append("Mentions payments or financial information")
+        
+        if engineered_details["uppercase_ratio"]:
+            explanation_summary.append("Excessive use of exclamation marks")
+
+        if not explanation_summary:
+            explanation_summary.append("Model derected suspicous patterns")
+    
+    else:
+        explanation_summary.append("Sender is from a trusted domain")
 
 #    # Override phishing if trusted and not extremely high confidence
 #    if is_trusted and prediction == "phishing":
@@ -260,7 +361,7 @@ Body: {body}""".strip()
     enriched["legitimate_confidence"] = legitimate_confidence
     enriched["sender_domain"] = sender_domain
     enriched["trusted_sender"] = is_trusted
-    enriched["explanation_summary"] = lime_data["summary"]
+    enriched["explanation_summary"] = explanation_summary
     enriched["explanation_features"] = lime_data["features"]
     
     return enriched

@@ -3,13 +3,14 @@ import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 from sklearn.model_selection import train_test_split, learning_curve
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
-from scipy.sparse import issparse
+from scipy.sparse import issparse, hstack, csr_matrix
 from sklearn.metrics import (
     classification_report,
     accuracy_score,
@@ -67,9 +68,65 @@ def normalise_labels(series):
 # ----------------------------
 
 def clean_text(series):
-    return series.fillna("").astype(str).str.strip()
+    return (
+        series.fillna("")
+        .astype(str)
+        .str.replace(r"\s+", " ", regex=True)
+        .str.replace(r"(?i)\bsubject:\b", " ", regex=True)
+        .str.replace(r"(?i)\bfrom:\b", " ", regex=True)
+        .str.replace(r"(?i)\bbody:\b", " ", regex=True)
+        .str.strip()
+        .str.lower()
+    )
+def count_links(text):
+    text = str(text or "")
+    return len(re.findall(r"http[s]?://|www\.", text, flags=re.IGNORECASE))
 
+def contains_urgent_words(text):
+    text = str(text or "").lower()
+    urgent_words = [
+        "urgent", "immediately", "suspended", "verify now",
+        "action required", "limited time", "warning", "alert"
+    ]
+    return int(any(word in text for word in urgent_words))
 
+def contains_account_words(text):
+    text = str(text or "").lower()
+    account_words = [
+        "account", "login", "sign in", "password", "username",
+        "verify", "authentication", "security"
+    ]
+    return int(any(word in text for word in account_words))
+
+def contains_payment_words(text):
+    text = str(text or "").lower()
+    payment_words = [
+        "payment", "invoice", "bank", "card", "refund",
+        "billing", "transaction", "transfer"
+    ]
+    return int(any(word in text for word in payment_words))
+
+def exclamation_count(text):
+    return str(text or "").count("!")
+
+def uppercase_ratio(text):
+    text = str(text or "")
+    letters = [c for c in text if c.isalpha()]
+    if not letters: 
+        return 0.0
+    upper = sum(1 for c in letters if c.isupper())
+    return upper / len(letters)
+
+def build_engineered_features(text_series):
+    features_df = pd.DataFrame({
+        "link_count": text_series.apply(count_links),
+        "has_urgent_words": text_series.apply(contains_urgent_words),
+        "has_account_words": text_series.apply(contains_account_words),
+        "has_payment_words": text_series.apply(contains_payment_words),
+        "exclamation_count": text_series.apply(exclamation_count),
+        "uppercase_ratio": text_series.apply(uppercase_ratio)
+    })
+    return features_df
 # ----------------------------
 # H4. Final dataset cleaning helper Applies standard cleanup to any text/label dataset
 # ----------------------------
@@ -174,9 +231,7 @@ def build_ceas_dataset(df):
     df["label"] = normalise_labels(df["label"])
 
     df["text"] = (
-        "From: " + df["sender"] +
-        " Subject: " + df["subject"] +
-        " Body: " + df["body"]
+        df["sender"] + " " + df["subject"] + " " + df["body"]
     ).str.strip()
 
     df = df[["text", "label"]]
@@ -190,8 +245,10 @@ def build_ceas_dataset(df):
 def create_vectorizer():
     return TfidfVectorizer(
         stop_words="english",
-        max_features=10000,
-        ngram_range=(1, 2)
+        max_features=15000,
+        ngram_range=(1, 2),
+        min_df=2,
+        sublinear_tf=True
     )
 
 
@@ -230,8 +287,15 @@ def evaluate_models_on_dataset(dataset_name, df, results_list):
     )
 
     vectorizer = create_vectorizer()
-    X_train_vec = vectorizer.fit_transform(X_train)
-    X_test_vec = vectorizer.transform(X_test)
+
+    X_train_text_vec = vectorizer.fit_transform(X_train)
+    X_test_text_vec = vectorizer.transform(X_test)
+
+    X_train_extra = csr_matrix(build_engineered_features(X_train).values)
+    X_test_extra = csr_matrix(build_engineered_features(X_test).values)
+
+    X_train_vec = hstack([X_train_text_vec, X_train_extra])
+    X_test_vec = hstack([X_test_text_vec, X_test_extra])
 
     for model_name, model in create_models().items():
         model.fit(X_train_vec, y_train)
@@ -325,12 +389,6 @@ def save_learning_curve(estimator, X, y, model_name, save_path):
 # H15. Error analysis helper Saves all misclassified emails and seperates false positives /false negatives 
 # ----------------------------
 
-def save_error_analysis(X_test, y_test, predictions, save_dir="models"):
-    results_df = pd.DataFrame({
-        "text": X_test.reset_index(drop=True),
-        "actual": y_test.reset_index(drop=True),
-        "predicted": pd.Series(predictions).reset_index(drop=True)
-    })
 def save_error_analysis(X_test, y_test, predictions, confidences=None, save_dir="models"):
     results_df = pd.DataFrame({
         "text": X_test.reset_index(drop=True),
@@ -670,10 +728,19 @@ vectorizer = create_vectorizer()
 # 6.2 Fit on training set and transform both datasets
 # ----------------------------
 
-X_train_vec = vectorizer.fit_transform(X_train)
-X_test_vec = vectorizer.transform(X_test)
+X_train_text_vec = vectorizer.fit_transform(X_train)
+X_test_text_vec = vectorizer.transform(X_test)
+
+X_train_extra = csr_matrix(build_engineered_features(X_train).values)
+X_test_extra = csr_matrix(build_engineered_features(X_test).values)
+
+X_train_vec = hstack([X_train_text_vec, X_train_extra])
+X_test_vec = hstack([X_test_text_vec, X_test_extra])
 
 print("Vectorization complete.")
+print("TF-IDF feature count:", X_train_text_vec.shape[1])
+print("Engineered feature count:", X_train_extra.shape[1])
+print("Total feature count:", X_train_vec.shape[1])
 print()
 
 
@@ -878,7 +945,10 @@ if os.path.exists(spam_test_path):
         # 10.3 Predict labels
         # ----------------------------
 
-        spam_test_vec = vectorizer.transform(spam_test["text"])
+        spam_test_text_vec = vectorizer.transform(spam_test["text"])
+        spam_test_extra = csr_matrix(build_engineered_features(spam_test["text"]).values)
+        spam_test_vec = hstack([spam_test_text_vec, spam_test_extra])
+
         spam_test["predicted_label"] = best_model.predict(spam_test_vec)
 
         # ----------------------------

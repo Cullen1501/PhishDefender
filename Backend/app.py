@@ -1,14 +1,14 @@
 """
 Local Flask API for PhishDefender inbox loading and email classification.
 """
-
-from pathlib import Path
 import imaplib
 import joblib
 import pandas as pd
+import numpy as np
+from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-
+from lime.lime_text import LimeTextExplainer
 from email_service import fetch_all_emails
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +33,12 @@ def serve_frontend_file(filename):
 
 MODEL = joblib.load(MODELS_DIR / "phishing_model.pkl")
 VECTORIZER = joblib.load(MODELS_DIR / "vectorizer.pkl")
+
+CLASS_NAMES = list(MODEL.classes_)
+
+LIME_EXPLAINER = LimeTextExplainer(
+    class_names=CLASS_NAMES
+)
 
 # ==================================================
 # Load trusted domains
@@ -98,6 +104,89 @@ def reduce_to_base_domain(domain: str) -> str:
         return ".".join(parts[-2:])
     return domain
 
+def predict_proba_for_lime(texts):
+    text_vectors = VECTORIZER.transform(texts)
+
+    if hasattr(MODEL, "predict_proba"):
+        scores = MODEL.predict_proba(text_vectors)
+
+    if hasattr(MODEL, "decision_function"):
+        scores = MODEL.decision_function(text_vectors)
+
+        if len(scores.shape) == 1:
+            probs_pos = 1 / (1 + np.exp(-scores))
+            probs_neg = 1 - probs_pos
+            return np.vstack([probs_neg, probs_pos]).T
+        
+    predictions = MODEL.predict(text_vectors)
+    output = []
+
+    for pred in predictions:
+        if pred == "phishing":
+            output.append([0.0, 1.0])
+        else:
+            output.append([1.0, 0.0])
+    
+    return np.array(output)
+
+def generate_lime_explanation(combined_text, predicted_label):
+    try:
+        explanation = LIME_EXPLAINER.explain_instance(
+            combined_text,
+            predict_proba_for_lime,
+            num_features=6
+        )
+
+        label_index = CLASS_NAMES.index(predicted_label)
+        feature_weights = explanation.as_list(label=label_index)
+
+        top_features = []
+        for feature, weight in feature_weights:
+            top_features.append({
+                "feature": feature,
+                "weight": round(float(weight), 4)
+            })
+        positive_features = [
+            item["feature"]
+            for item in top_features
+            if item["weight"] > 0
+        ]
+
+        if predicted_label == "phishing":
+            if positive_features:
+                summary = (
+                    "This email was flagged as phishing because the model found suspicious language such as: "#
+                    + ", ".join(positive_features[:4]) + "."
+                )
+            else:
+                summary = (
+                    "This email was flagged as phishing because the model found language patterns associated with phishing emails."
+                )
+
+        else:
+            if positive_features:
+                sumary = (
+                    "This email was marked as legitimate becuase the model found more normal-looking language such as: "
+                    + ", ".join(positive_features[:4]) + "."
+                )
+            else:
+                summary = (
+                    "This email was marked as legitimate because the model found language patterns more consistent with safe emails."
+                )
+        
+        return {
+            "summary": summary,
+            "features": top_features
+        }
+    
+    except Exception as e:
+        print("LIME ERROR:", str(e))
+        return {
+            "summary": "Explanation could not be generated for this email.",
+            "features": [],
+            "error": str(e)
+        }
+    
 
 # ==================================================
 # Classification
@@ -134,6 +223,8 @@ Body: {body}""".strip()
         phishing_confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
         legitimate_confidence = 1.0 - phishing_confidence
 
+    lime_data = generate_lime_explanation(combined_text, prediction)
+
     # Extract sender domain
     sender_domain = extract_sender_domain(sender)
     base_domain = reduce_to_base_domain(sender_domain)
@@ -147,7 +238,9 @@ Body: {body}""".strip()
 #    if is_trusted and prediction == "phishing":
 #        if phishing_confidence is None or phishing_confidence < 0.90:
 #            prediction = "legitimate"
-# During live inbox testing, i observed that because i was generating emails with either phishing or legitimate emails from phishdefender.sender@gmail.com it was just trusting that email address so this block was removed 
+# During live inbox testing, i observed that because i was generating emails with either phishing or 
+# legitimate emails from phishdefender.sender@gmail.com it was just trusting that email address so 
+# this block was removed 
 
     print("\n--- Email Classification ---")
     print("Subject:", subject)
@@ -158,6 +251,7 @@ Body: {body}""".strip()
     print("Prediction:", prediction)
     print("Phishing Confidence:", phishing_confidence)
     print("Legitimate Confidence:", legitimate_confidence)
+    print()
     print("----------------------------")
 
     enriched = dict(email_item)
@@ -166,6 +260,8 @@ Body: {body}""".strip()
     enriched["legitimate_confidence"] = legitimate_confidence
     enriched["sender_domain"] = sender_domain
     enriched["trusted_sender"] = is_trusted
+    enriched["explanation_summary"] = lime_data["summary"]
+    enriched["explanation_features"] = lime_data["features"]
     
     return enriched
 

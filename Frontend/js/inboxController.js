@@ -15,7 +15,16 @@ document.addEventListener("componentsLoaded", () => {
 
   if (!viewer || !listPanel || !phishingList || !legitimateList) return;
 
-  function getCachedEmails() {
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+    function getCachedEmails() {
     try {
       const raw = sessionStroage.getItem(EMAIL_CACHE_KEY);
       if (!raw) return [];
@@ -52,15 +61,6 @@ document.addEventListener("componentsLoaded", () => {
     } else {
       renderWelcome(auth.getUseranme() || "User");
     }
-  }
-
-  function escapeHtml(value) {
-    return String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
   }
 
   function renderWelcome(username = "") {
@@ -241,7 +241,7 @@ async function loadInbox(options = {}) {
   }
 
   renderWelcome(Auth.getUsername() || "User");
-  setInboxStatus("Loading inbox emails and classifying them...");
+  setInboxStatus("Loading inbox emails and sorting them...");
   setResultPlaceholders();
 
   try {
@@ -255,7 +255,53 @@ async function loadInbox(options = {}) {
     });
 
     const data = await response.json();
+    if (!response.ok) {
+      Auth.logout();
+      renderLoginPanel(data.error || "Login failed. Please try again.");
+      return;
+    }
 
+    const emails = Array.isArray(data.emails) ? data.emails : [];
+    saveCachedEmails(emails);
+    renderLoadedInbox(emails);
+  } catch (error) {
+    console.error(error);
+    setInboxStatus("Network error. Make sure the backend is running on port 5000.");
+    setResultPlaceholders();
+  }
+}
+
+async function loadInbox(options = {}) {
+  const { forceRefresh = false } = options;
+
+  const creds = Auth.getCreds();
+  if (!creds) {
+    renderLoginPanel("");
+    return;
+  }
+
+  const cachedEmails = getCachedEmails();
+
+  if (!forceRefresh && cachedEmails.length > 0) {
+    renderLoadedInbox(cachedEmails);
+    return;
+  }
+
+  renderWelcome(Auth.getUsername() || "User");
+  setInboxStatus("Loading inbox emails and sorting them...");
+  setResultPlaceholders();
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: creds.email,
+        appPassword: creds.appPassword,
+      }),
+    });
+
+    const data = await response.json();
     if (!response.ok) {
       Auth.logout();
       renderLoginPanel(data.error || "Login failed. Please try again.");
@@ -273,6 +319,7 @@ async function loadInbox(options = {}) {
 }
 
   refreshBtn?.addEventListener("click", () => loadInbox({ forceRefresh: true}));
+  checkNewEmailsBtn?.addEventListener("click", checkForNewEmails);
 
 analyseBtn?.addEventListener("click", () => {
   const savedEmails = sessionStorage.getItem("pd_analysed_emails");

@@ -676,7 +676,121 @@ def emails():
         return jsonify({"error": f"IMAP error: {str(exc)}"}), 401
     except Exception as exc:
         return jsonify({"error": f"Server error: {str(exc)}"}), 500
+
+@app.route("/api/emails/new", methods=["POST"])
+def get_new_emails():
+    data=request.get_json(force=True) or {}
+
+    gmail_address = (data.get ("email") or "").strip()
+    app_password = (data.get("appPassword") or "").strip()
+    last_seen_uid = data.get("lastSeenUid")
+
+    if not gmail_address or not app_password:
+        return jsonify({"error": "Missing email or app password."}), 400
     
+    try: 
+        new_emails = fetch_all_emails(
+            gmail_address,
+            app_password,
+            only_after_uid=int(last_seen_uid) if last_seen_uid is not None else None
+        )
+
+        results = []
+
+        for email_obj in new_emails:
+            subject = email_obj.get("subject", "")
+            sender = email_obj.get("from", "")
+            body = email_obj.get("body", "")
+
+            combined_text = f"Subject: {subject}\nFrom: {sender}\nBody: {body}"
+
+            model_input = build_model_input([combined_text])
+            prediction = MODEL.predict(model_input)[0]
+
+            phishing_confidence = None
+            legitimate_confidence = None
+
+            if hasattr(MODEL, "predict_proba"):
+                probs = MODEL.predict_proba(model_input)[0]
+                class_to_prob = dict(zip(CLASS_NAMES, probs))
+                phishing_confidence = float(class_to_prob.get("phishing", 0.0))
+                legitimate_confidence = float(class_to_prob.get("legitimate", 0.0))
+            elif hasattr(MODEL, "decision_function"):
+                score = MODEL.decision_function(model_input)
+                if np.ndim(score) > 0:
+                    score = float(np.ravel(score)[0])
+                phishing_confidence = float(1 / (1 + np.exp(-score)))
+                legitimate_confidence = float(1 - phishing_confidence)
+
+            # Build explanation summary inline
+            sender_domain = extract_sender_domain(sender)
+            base_domain = reduce_to_base_domain(sender_domain)
+            is_trusted = base_domain in trusted_domains
+            
+            explanation_summary = []
+            
+            if prediction == "phishing":
+                if not is_trusted:
+                    explanation_summary.append("Sender domain is not trusted")
+                
+                if count_links(combined_text) > 0:
+                    explanation_summary.append("Email contains links")
+                
+                if contains_urgent_words(combined_text):
+                    explanation_summary.append("Uses urgent or threatening language")
+                
+                if contains_account_words(combined_text):
+                    explanation_summary.append("Requests account or login information")
+                
+                if contains_payment_words(combined_text):
+                    explanation_summary.append("Mentions payments or financial information")
+                
+                if exclamation_count(combined_text) > 3:
+                    explanation_summary.append("Excessive use of exclamations marks (!)")
+                
+                if uppercase_ratio(combined_text) > 0.30:
+                    explanation_summary.append("High use of uppercase text")
+                
+                if not explanation_summary:
+                    explanation_summary.append("Model detected suspicous patterns")
+            else:
+                explanation_summary.append("No strong phishing indicators detected")
+                
+                if is_trusted:
+                    explanation_summary.append("Sender is from a trusted domain")
+
+            lime_result = generate_lime_explanation(combined_text, prediction)
+            shap_result = generate_shap_explanation(model_input, prediction)
+
+            results.append({
+                "id": email_obj.get("id"),
+                "uid": email_obj.get("uid"),
+                "messageId": email_obj.get("messageId"),
+                "from": sender,
+                "subject": subject,
+                "date": email_obj.get("date", ""),
+                "body": body,
+                "prediction": prediction,
+                "phishing_confidence": phishing_confidence,
+                "legitimate_confidence": legitimate_confidence,
+                "explanation_summary": explanation_summary,
+                "lime_summary": lime_result.get("summary", ""),
+                "lime_features": lime_result.get("features", []),
+                "shap_summary": shap_result.get("summary", ""),
+                "shap_features": shap_result.get("features", []),
+                "trusted_sender": reduce_to_base_domain(extract_sender_domain(sender)) in trusted_domains,
+            })
+
+        return jsonify({
+            "new_emails": results,
+            "count": len(results)
+        })
+
+    except imaplib.IMAP4.error:
+        return jsonify({"error": "Login failed. Please try again."}), 401
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
 # Run App
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

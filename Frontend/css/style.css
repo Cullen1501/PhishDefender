@@ -177,6 +177,14 @@ Styles the login form shown inside the inbox area
   color: white;
 }
 
+.new-email-notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.10);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
 /* Holds login  action buttons side by side */
 .login-panel .actions {
   display: flex;
@@ -383,6 +391,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
 
 /* Small action buttons such as refresh or quick actions */
 .small-action-btn,
+.secondary,
 .small-inline-btn {
   padding: 10px 12px;
   border-radius: 10px;
@@ -394,6 +403,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
 }
  /* Hover effect for small buttons */
 .small-action-btn:hover,
+.secondary:hover,
 .small-inline-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
   color: #38dbf8;

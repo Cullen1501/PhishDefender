@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset+"UTF-8">
+    <meta name="viewport" content=""width=device-width, initial-scale="1.0">
+    <title>PhishDefender - Explanation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main class="explanation-page">
+        <div class="explanation-shell">
+            <section class="explanation-intro">
+                <p class="page-kicker">Classification Review</p>
+                <h1 class="page-title">Why each email was classified this way</h1>
+                <p class="page-description">
+                    This page shows each classified email alongside a simple explanation of why
+                    PhishDefender may have labelled it as phishing or legitimate.
+                </p>
+            </section>
+
+            <section class="explanation-toolbar">
+                <div class="toolbar-left">
+                    <button id="backToInboxBtn" class="small-action-btn"> Back to Inbox</button>
+                </div>
+
+                <div class="toolbar-right">
+                    <button class="small-action-btn filter-btn is-active" data-filter="all">All</button>
+                    <button class="small-action-btn filter-btn" data-filter="phishing">Phishing</button>
+                    <button class="small-action-btn filter-btn" data-filter="legitimate">Legitimate</button>
+                </div>
+            </section>
+
+            <section id="explanationList" class="explanation-list">
+                <div class="result-placeholder">
+                    No analysed emails available yet. Go back to the inbox page and classify emails first.
+                </div>
+            </section>
+
+            <section class="explanation-info">
+                <div class="info-card">
+                    <h2>How this explanation works</h2>
+                    <p>
+                        PhishDefender uses a machine learning model to classify emails based on patterns 
+                        found in the message content. The explanation shown here highlights common warning 
+                        signs and reassuring signs found in the email text, sender details, and wording.
+                    </p>
+                    <p>
+                        These explanations are designed to help users understand the decision, but they are
+                        not a guarantee that an email is definitely safe or definitely malicous. They should 
+                        be used as decision support alongside normal caution. 
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <h2>How to read the results</h2>
+                    <ul class="explanation-help-list">
+                        <li><strong>Overall explanation:</strong> quick human readable reason</li>
+                        <li><strong>LIME:</strong> importnat words for this specific email</li>
+                        <li><strong>SHAP:</strong> strongest model feature contibutions</li>
+                        <li><strong>Confidence bars:</strong> how strongly the model leaned each way</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/componentLoader.js"></script>
+    <script src="js/authController.js"></script>
+    <script src="js/explanation.js"></script>
+</body>
+</html>

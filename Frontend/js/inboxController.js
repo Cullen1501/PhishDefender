@@ -8,10 +8,51 @@ document.addEventListener("componentsLoaded", () => {
   const viewerStatus = document.getElementById("viewerStatus");
   const refreshBtn = document.getElementById("refreshInboxBtn");
   const analyseBtn = document.getElementById("analyseBtn");
-  const comingSoonOverlay = document.getElementById("comingSoonOverlay");
-  const closeComingSoonBtn = document.getElementById("closeComingSoonBtn");
+  const EMAIL_CACHE_KEY = "pd_analysed_emails";
+  const EMAIL_CACHE_TIME_KEY = "pd_analysed_emails_cached_at";
+  const checkNewEmailsBtn = document.getElementById("checkNewEmailsBtn");
+  const newEmailNotice = document.getElementById("newEmailNotice");
 
   if (!viewer || !listPanel || !phishingList || !legitimateList) return;
+
+  function getCachedEmails() {
+    try {
+      const raw = sessionStroage.getItem(EMAIL_CACHE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)? parsed : [];
+    } catch (error) {
+      console.error("Failed to read cached emails:", error);
+      return [];
+    }
+  }
+
+  function saveCachedEmails(emails) {
+    sessionStorage.setItem(EMAIL_CACHE_KEY, JSON.stringify(emails));
+    sessionStorage.setItem(EMAIL_CACHE_TIME_KEY, String(Date.now()));
+  }
+
+  function getLastestCachedUid(emails) {
+    if (!Array.isArray(emails) || !emails.length) return null;
+
+    const withUid = emails
+    .map((email) => Number(email.uid))
+    .filter((uid) =>  Number.isFinite(uid));
+
+  if (!withUid.lengt) return null;
+  return Math.max(...withUid);
+  }
+
+  function renderLoadedInbox(emails) {
+    renderInboxList(emails);
+    renderSortedLists(emails);
+
+    if (emails.length > 0) {
+      openEmail(emails[0]);
+    } else {
+      renderWelcome(auth.getUseranme() || "User");
+    }
+  }
 
   function escapeHtml(value) {
     return String(value || "")
@@ -183,70 +224,66 @@ document.addEventListener("componentsLoaded", () => {
     emails.forEach((item) => listPanel.appendChild(makeInboxRow(item)));
   }
 
-  async function loadInbox() {
-    const creds = Auth.getCreds();
-    if (!creds) {
-      renderLoginPanel("");
+async function loadInbox(options = {}) {
+  const { forceRefresh = false } = options;
+
+  const creds = Auth.getCreds();
+  if (!creds) {
+    renderLoginPanel("");
+    return;
+  }
+
+  const cachedEmails = getCachedEmails();
+
+  if (!forceRefresh && cachedEmails.length > 0) {
+    renderLoadedInbox(cachedEmails);
+    return;
+  }
+
+  renderWelcome(Auth.getUsername() || "User");
+  setInboxStatus("Loading inbox emails and classifying them...");
+  setResultPlaceholders();
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: creds.email,
+        appPassword: creds.appPassword,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      Auth.logout();
+      renderLoginPanel(data.error || "Login failed. Please try again.");
       return;
     }
 
-    renderWelcome(Auth.getUsername() || "User");
-    setInboxStatus("Loading all inbox emails and sorting them...");
+    const emails = Array.isArray(data.emails) ? data.emails : [];
+    saveCachedEmails(emails);
+    renderLoadedInbox(emails);
+  } catch (error) {
+    console.error(error);
+    setInboxStatus("Network error. Make sure the backend is running on port 5000.");
     setResultPlaceholders();
+  }
+}
 
-    try {
-      const response = await fetch("http://127.0.0.1:5000/api/emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: creds.email,
-          appPassword: creds.appPassword,
-        }),
-      });
+  refreshBtn?.addEventListener("click", () => loadInbox({ forceRefresh: true}));
 
-      const data = await response.json();
-      if (!response.ok) {
-        Auth.logout();
-        renderLoginPanel(data.error || "Login failed. Please try again.");
-        return;
-      }
+analyseBtn?.addEventListener("click", () => {
+  const savedEmails = sessionStorage.getItem("pd_analysed_emails");
 
-      const emails = Array.isArray(data.emails) ? data.emails : [];
-      renderInboxList(emails);
-      renderSortedLists(emails);
-
-      if (emails.length > 0) {
-        openEmail(emails[0]);
-      } else {
-        renderWelcome(Auth.getUsername() || "User");
-      }
-    } catch (error) {
-      console.error(error);
-      setInboxStatus("Network error. Make sure the backend is running on port 5000.");
-      setResultPlaceholders();
-    }
+  if (!savedEmails) {
+    alert("Please analyse the inbox first so there are results to explain.");
+    return;
   }
 
-  refreshBtn?.addEventListener("click", loadInbox);
-
-  analyseBtn?.addEventListener("click", () => {
-    if (comingSoonOverlay) {
-      comingSoonOverlay.classList.add("is-open");
-      comingSoonOverlay.setAttribute("aria-hidden", "false");
-    }
-  });
-
-  closeComingSoonBtn?.addEventListener("click", () => {
-    comingSoonOverlay?.classList.remove("is-open");
-    comingSoonOverlay?.setAttribute("aria-hidden", "true");
-  });
-
-  comingSoonOverlay?.addEventListener("click", (event) => {
-    if (event.target === comingSoonOverlay) {
-      comingSoonOverlay.classList.remove("is-open");
-      comingSoonOverlay.setAttribute("aria-hidden", "true");
-    }
-  });
+  window.location.href = "explanation.html";
+});
 
   window.loadInbox = loadInbox;
   loadInbox();

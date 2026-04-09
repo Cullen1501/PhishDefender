@@ -1,4 +1,4 @@
-from Backend.email_generator1 import generate_emails
+from Backend.email_generator import generate_emails
 
 def main():
     email_count = 100

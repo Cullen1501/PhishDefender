@@ -68,7 +68,7 @@ document.addEventListener("componentsLoaded", () => {
 
         return `
         <div class="reason-chip ${chipType}">
-            <strong>${excapeHtml(feature)}</strong>
+            <strong>${escapeHtml(feature)}</strong>
             ${weight ? `<span class="feature-weight">${escapeHtml(weight)}</span>` : ""}
             </div>
         `;

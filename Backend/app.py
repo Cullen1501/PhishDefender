@@ -619,9 +619,7 @@ def classify_email(email_item: dict) -> dict:
     enriched["lime_features"] = lime_data.get("features", [])
     enriched["shap_summary"] = shap_data.get("summary", "")
     enriched["shap_features"] = shap_data.get("features", [])
-    
-    #enriched["explanation_features"] = lime_data.get("features", [])  # compatibility with frontend 
-    #(MIGHT BE ABLE TO REMOVE NOW!)
+    enriched["explanation_features"] = lime_data.get("features", [])  # compatibility with frontend 
 
     return enriched
 

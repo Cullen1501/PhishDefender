@@ -506,11 +506,13 @@ def classify_email(email_item: dict) -> dict:
     base_domain = reduce_to_base_domain(sender_domain)
 
     # Build one combined text string
-    combined_text = f"{sender} {subject} {body}".strip()
-    cleaned_text = normalise_email_text([combined_text])
+    combined_text = f"Subject: {subject}\nFrom: {sender}\nBody: {body}".strip()
 
+    # Clean text properly as a STRING, not a list
+    cleaned_text = normalise_email_text(combined_text)
 
     # Build model input using TF-IDF + engineered features
+    # build_model_input expects a list of texts, so wrap once here only
     model_input = build_model_input([cleaned_text])
 
     # Predict phishing / legitimate
@@ -523,18 +525,16 @@ def classify_email(email_item: dict) -> dict:
     if hasattr(MODEL, "predict_proba"):
         probs = MODEL.predict_proba(model_input)[0]
         classes = list(MODEL.classes_)
-
         phishing_index = classes.index("phishing")
         legitimate_index = classes.index("legitimate")
-
         phishing_confidence = float(probs[phishing_index])
         legitimate_confidence = float(probs[legitimate_index])
-    
+
     elif hasattr(MODEL, "decision_function"):
         raw_score = float(MODEL.decision_function(model_input)[0])
         phishing_confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
         legitimate_confidence = 1.0 - phishing_confidence
-    
+
     # Generate explainability outputs
     lime_data = generate_lime_explanation(combined_text, prediction)
     shap_data = generate_shap_explanation(model_input, prediction)
@@ -544,24 +544,23 @@ def classify_email(email_item: dict) -> dict:
         base_domain in trusted_domains
     )
 
-    # Compute engineered details for frontend display 
+    # Compute engineered details for frontend display
     engineered_details = {
         "link_count": count_links(cleaned_text),
-        "has_urgent_words": bool(contains_urgent_words),
-        "has_account_words": bool(contains_account_words),
-        "has_payment_words": bool(contains_payment_words),
+        "has_urgent_words": bool(contains_urgent_words(cleaned_text)),
+        "has_account_words": bool(contains_account_words(cleaned_text)),
+        "has_payment_words": bool(contains_payment_words(cleaned_text)),
         "exclamation_count": exclamation_count(cleaned_text),
         "uppercase_ratio": round(uppercase_ratio(cleaned_text), 4)
     }
 
-    # Human Readable Explanation
-
+    # Human readable explanation
     explanation_summary = []
 
     if prediction == "phishing":
         if not is_trusted:
             explanation_summary.append("Sender domain is not trusted")
-        
+
         if engineered_details["link_count"] > 0:
             explanation_summary.append("Email contains links")
 
@@ -575,61 +574,54 @@ def classify_email(email_item: dict) -> dict:
             explanation_summary.append("Mentions payments or financial information")
 
         if engineered_details["exclamation_count"] > 3:
-            explanation_summary.append("Excessive use of exclamations marks (!)")
-        
+            explanation_summary.append("Excessive use of exclamation marks (!)")
+
         if engineered_details["uppercase_ratio"] > 0.30:
             explanation_summary.append("High use of uppercase text")
 
         if not explanation_summary:
-            explanation_summary.append("Model detected suspicous patterns")
+            explanation_summary.append("Model detected suspicious patterns")
 
     else:
         explanation_summary.append("No strong phishing indicators detected")
 
         if is_trusted:
             explanation_summary.append("Sender is from a trusted domain")
-        else:
-            explanation_summary.append("Email appears safe neased on language patterns")
+
+        explanation_summary.append("Email appears safe based on language patterns")
 
     # Debug print in terminal
-    print("\n --- Email Classification ---")
-    print("subject:", subject)
+    print("\n--- Email Classification ---")
+    print("Subject:", subject)
     print("From:", sender)
     print("Sender domain:", sender_domain)
     print("Base domain:", base_domain)
     print("Trusted sender:", is_trusted)
     print("Prediction:", prediction)
-    print("Phsihing Confidence:", phishing_confidence)
-    print("Legitimate Confidence:", legitimate_confidence)
+    print("Phishing confidence:", phishing_confidence)
+    print("Legitimate confidence:", legitimate_confidence)
     print("Explanation Summary:", explanation_summary)
-    print("LIME Summary:", lime_data["summary"])
-    print("SHAP Summary:", shap_data["summary"])
+    print("LIME Summary:", lime_data.get("summary"))
+    print("SHAP Summary:", shap_data.get("summary"))
     print("---------------------------------")
 
-    # Build final response object 
-    enriched = dict (email_item)
+    # Build final response object
+    enriched = dict(email_item)
     enriched["prediction"] = prediction
     enriched["phishing_confidence"] = phishing_confidence
     enriched["legitimate_confidence"] = legitimate_confidence
     enriched["sender_domain"] = sender_domain
     enriched["base_domain"] = base_domain
     enriched["trusted_sender"] = is_trusted
-
     enriched["engineered_features"] = engineered_details
-
-    # My explanation
     enriched["explanation_summary"] = explanation_summary
-
-    # LIME explanation
-    enriched["lime_summary"] = lime_data["summary"]
-    enriched["lime_features"] = lime_data["features"]
-
-    # SHAP explanation
-    enriched["shap_summary"] = shap_data["summary"]
-    enriched["shap_features"] = shap_data["features"]
-
-    # kept for compatibility with your current frontend
-    enriched["explanation_features"] = lime_data["features"]
+    enriched["lime_summary"] = lime_data.get("summary", "")
+    enriched["lime_features"] = lime_data.get("features", [])
+    enriched["shap_summary"] = shap_data.get("summary", "")
+    enriched["shap_features"] = shap_data.get("features", [])
+    
+    #enriched["explanation_features"] = lime_data.get("features", [])  # compatibility with frontend 
+    #(MIGHT BE ABLE TO REMOVE NOW!)
 
     return enriched
 
@@ -679,118 +671,34 @@ def emails():
 
 @app.route("/api/emails/new", methods=["POST"])
 def get_new_emails():
-    data=request.get_json(force=True) or {}
+    data = request.get_json(force=True) or {}
 
-    gmail_address = (data.get ("email") or "").strip()
+    gmail_address = (data.get("email") or "").strip()
     app_password = (data.get("appPassword") or "").strip()
     last_seen_uid = data.get("lastSeenUid")
 
     if not gmail_address or not app_password:
         return jsonify({"error": "Missing email or app password."}), 400
-    
-    try: 
+
+    try:
         new_emails = fetch_all_emails(
             gmail_address,
             app_password,
             only_after_uid=int(last_seen_uid) if last_seen_uid is not None else None
         )
 
-        results = []
-
-        for email_obj in new_emails:
-            subject = email_obj.get("subject", "")
-            sender = email_obj.get("from", "")
-            body = email_obj.get("body", "")
-
-            combined_text = f"Subject: {subject}\nFrom: {sender}\nBody: {body}"
-
-            model_input = build_model_input([combined_text])
-            prediction = MODEL.predict(model_input)[0]
-
-            phishing_confidence = None
-            legitimate_confidence = None
-
-            if hasattr(MODEL, "predict_proba"):
-                probs = MODEL.predict_proba(model_input)[0]
-                class_to_prob = dict(zip(CLASS_NAMES, probs))
-                phishing_confidence = float(class_to_prob.get("phishing", 0.0))
-                legitimate_confidence = float(class_to_prob.get("legitimate", 0.0))
-            elif hasattr(MODEL, "decision_function"):
-                score = MODEL.decision_function(model_input)
-                if np.ndim(score) > 0:
-                    score = float(np.ravel(score)[0])
-                phishing_confidence = float(1 / (1 + np.exp(-score)))
-                legitimate_confidence = float(1 - phishing_confidence)
-
-            # Build explanation summary inline
-            sender_domain = extract_sender_domain(sender)
-            base_domain = reduce_to_base_domain(sender_domain)
-            is_trusted = base_domain in trusted_domains
-            
-            explanation_summary = []
-            
-            if prediction == "phishing":
-                if not is_trusted:
-                    explanation_summary.append("Sender domain is not trusted")
-                
-                if count_links(combined_text) > 0:
-                    explanation_summary.append("Email contains links")
-                
-                if contains_urgent_words(combined_text):
-                    explanation_summary.append("Uses urgent or threatening language")
-                
-                if contains_account_words(combined_text):
-                    explanation_summary.append("Requests account or login information")
-                
-                if contains_payment_words(combined_text):
-                    explanation_summary.append("Mentions payments or financial information")
-                
-                if exclamation_count(combined_text) > 3:
-                    explanation_summary.append("Excessive use of exclamations marks (!)")
-                
-                if uppercase_ratio(combined_text) > 0.30:
-                    explanation_summary.append("High use of uppercase text")
-                
-                if not explanation_summary:
-                    explanation_summary.append("Model detected suspicous patterns")
-            else:
-                explanation_summary.append("No strong phishing indicators detected")
-                
-                if is_trusted:
-                    explanation_summary.append("Sender is from a trusted domain")
-
-            lime_result = generate_lime_explanation(combined_text, prediction)
-            shap_result = generate_shap_explanation(model_input, prediction)
-
-            results.append({
-                "id": email_obj.get("id"),
-                "uid": email_obj.get("uid"),
-                "messageId": email_obj.get("messageId"),
-                "from": sender,
-                "subject": subject,
-                "date": email_obj.get("date", ""),
-                "body": body,
-                "prediction": prediction,
-                "phishing_confidence": phishing_confidence,
-                "legitimate_confidence": legitimate_confidence,
-                "explanation_summary": explanation_summary,
-                "lime_summary": lime_result.get("summary", ""),
-                "lime_features": lime_result.get("features", []),
-                "shap_summary": shap_result.get("summary", ""),
-                "shap_features": shap_result.get("features", []),
-                "trusted_sender": reduce_to_base_domain(extract_sender_domain(sender)) in trusted_domains,
-            })
+        results = [classify_email(email_obj) for email_obj in new_emails]
 
         return jsonify({
             "new_emails": results,
             "count": len(results)
         })
 
-    except imaplib.IMAP4.error:
-        return jsonify({"error": "Login failed. Please try again."}), 401
+    except imaplib.IMAP4.error as exc:
+        return jsonify({"error": f"IMAP error: {str(exc)}"}), 401
+
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
-
 # Run App
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

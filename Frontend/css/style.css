@@ -391,7 +391,6 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
 
 /* Small action buttons such as refresh or quick actions */
 .small-action-btn,
-.secondary,
 .small-inline-btn {
   padding: 10px 12px;
   border-radius: 10px;
@@ -403,7 +402,6 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
 }
  /* Hover effect for small buttons */
 .small-action-btn:hover,
-.secondary:hover,
 .small-inline-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
   color: #38dbf8;
@@ -845,4 +843,46 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   .explanation-info {
     grid-template-columns: 1fr;
   }
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  color: #ffffff;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.login-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.login-panel-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #7dd3fc;
+  color: #081120;
+  font-weight: 600;
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }

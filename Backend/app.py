@@ -499,7 +499,7 @@ def classify_email(email_item: dict) -> dict:
     # Pull out main email fields
     subject = (email_item.get("subject") or "").strip()
     sender = (email_item.get("from") or "").strip()
-    body = (email_item.get("body") or "").stip()
+    body = (email_item.get("body") or "").strip()
 
     # Extract sender domain and reduce to base domain
     sender_domain = extract_sender_domain(sender)
@@ -655,7 +655,7 @@ def emails():
     gmail_address = (data.get("email") or "").strip()
     app_password = (data.get("appPassword") or "").strip()
 
-    if not gmail_address or app_password:
+    if not gmail_address or not app_password:
         return jsonify({"error": "Missing email or appPassword"}), 400
     
     try:

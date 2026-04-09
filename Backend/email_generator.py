@@ -1,12 +1,27 @@
-import random
-import re
+"""
+email_generator.py
+
+This file generates synthetic (fake) emails for testing the PhishDefender system.
+
+Purpose of this file:
+1. Create realistic "legitimate" emails (e.g. Invoices, meetings, deliveries)
+2. Create realistic "phishing" emails (e.g. urgent account alerts, fake links)
+3. Provide variety in:
+    - writing style 
+    - email length
+4. Allow controlled dataset generation for testing the ML model
+"""
+
+import random                 # Used for generating randomness in emails
+import re                     # Used for cleaning names for email formatting
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-# =====================================
-# HELPER DATA
-# =====================================
+# Helper Data (Static Pools) 
 
+# These lists act as "building blocks" for generating realistic emails
+
+# Random names used for personalisation
 NAMES = [
     "James", "Oliver", "George", "Harry", "Jack",
     "Noah", "Charlie", "Thomas", "Oscar", "William",
@@ -18,6 +33,7 @@ NAMES = [
     "Hannah", "Lucy", "Ruby", "Jessica", "Sophie"
 ]
 
+# Legitimate organisations used to simulate real compaines
 LEGIT_ORGS = [
     {
         "brand": "Oakridge Delivery",
@@ -51,6 +67,7 @@ LEGIT_ORGS = [
     }
 ]
 
+# Fake phishing style brand names
 PHISH_BRANDS = [
     "Account Protection Desk",
     "Secure Review Centre",
@@ -62,6 +79,7 @@ PHISH_BRANDS = [
     "Account Review Notice"
 ]
 
+# Suspicous domains used in phishing emails
 PHISH_DOMAINS = [
     "account-review-alert.net",
     "secure-login-check.com",
@@ -72,6 +90,8 @@ PHISH_DOMAINS = [
     "verify-account-office.net",
     "urgent-access-check.com"
 ]
+
+# Various supporting data pools for realism 
 
 MEETING_LOCATIONS = [
     "Room 2.14",
@@ -110,6 +130,8 @@ SHIPPING_ITEMS = [
     "your recent purchase", "your shipment"
 ]
 
+# Greeting styles
+
 FORMAL_GREETINGS = [
     "Dear {name},",
     "Hello {name},",
@@ -131,6 +153,8 @@ GENERIC_GREETINGS = [
     "Hello,"
 ]
 
+# Sign-offs
+
 SIGNOFFS_FORMAL = [
     "Kind regards,",
     "Regards,",
@@ -145,6 +169,7 @@ SIGNOFFS_NEUTRAL = [
     "Kind regards,"
 ]
 
+# Phishing language patterns
 PHISH_URGENCY = [
     "Urgent",
     "Immediate Action Required",
@@ -181,36 +206,50 @@ SHORT_TIME_LIMITS = [
     "before the end of the day"
 ]
 
+# Style options used to vary tone of emails 
 STYLE_OPTIONS = ["formal", "casual", "system"]
+
+# Length options used to vary email complexity
 LENGTH_OPTIONS = ["short", "medium", "long"]
 
-# ===================================
+
 # BASIC HELPERS
-# ===================================
 
 def random_date(days_back: int = 3, days_forward: int = 14) -> str:
+    """
+    Generate a random date within a given range.
+    Used ot make emails feel realistic
+    """
     delta = random.randint(-days_back, days_forward)
     chosen_date = datetime.now() + timedelta(days=delta)
     return chosen_date.strftime("%d %B %Y")
 
 def random_time() -> str:
+    """
+    Generate a realistic time (working hours only)
+    """
     hour = random.randint(8, 17)
     minute = random.choice([0, 15, 30, 45])
     return f"{hour:02d}:{minute:02d}"
 
 def random_ref(prefix: str = "REF") -> str:
+    # Generate a fake refernce number
     return f"{prefix}-{random.randint(100000, 999999)}"
 
 def random_tracking() -> str:
+    # Generate a fake tracking number
     return f"TRK-{random.randint(100000, 999999)}"
 
 def random_invoice() -> str:
+    # Generate a fake invoice number
     return f"INV-{random.randint(100000, 999999)}"
 
 def random_ticket() -> str:
+    # Generate a fake support ticket ID
     return f"TKT-{random.randint(10000, 999999)}"
 
 def choose_greeting(name: str, style: str) -> str:
+    #Select a greeting based on style
     if style == "formal":
         return random.choice(FORMAL_GREETINGS).format(name=name)
     if style == "casual":
@@ -218,22 +257,27 @@ def choose_greeting(name: str, style: str) -> str:
     return random.choice(GENERIC_GREETINGS)
 
 def choose_signoff(style: str) -> str:
+    # Select an appropriate sign-off based on style
     if style == "formal":
         return random.choice(SIGNOFFS_FORMAL)
     return random.choice(SIGNOFFS_NEUTRAL)
 
 def maybe_add_line(lines: List[str], line: str, chance: float = 0.5) -> None:
+    # Randomly include optional lines to add variation. 
     if random.random() < chance:
         lines.append(line)
 
 def join_lines(lines: List[str]) -> str:
+    # Clean and join email body email body lines into readable format
     cleaned = [line for line in lines if line and line.strip()]
     return "\n\n".join(cleaned)
 
 def clean_name_for_email(value: str) -> str:
+    # Clean a string so it can be used in an email address
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 def legit_sender(org: Dict[str, str]) -> str:
+    # Generate a realistic sender for legitimate emails.
     local = random.choice([
         "support", "noreply", "accounts", "billing", "help",
         "notifications", "dispatch", "services", "admin"
@@ -241,21 +285,31 @@ def legit_sender(org: Dict[str, str]) -> str:
     return f"{org['brand']} <{local}@{org['domain']}>"
 
 def phish_sender() -> str:
+    # Generate a suspicous sender for phishing emails.
     brand = random.choice(PHISH_BRANDS)
     local = random.choice(["security", "verify", "billing", "admin", "review", "support"])
     domain = random.choice(PHISH_DOMAINS)
     return f"{brand} <{local}@{domain}>"
 
 def legit_link(org: Dict[str, str], path: str = "portal") -> str:
+    # Generate a safe looking HTTPS link.
     return f"https://www.{org['domain']}/{path}/{random.randint(1000, 9999)}"
 
 def phish_link(path: str = "portal") -> str:
+    # Generate a suspicous HTTP link 
     domain = random.choice(PHISH_DOMAINS)
     return f"http://{domain}/{path}/{random.randint(1000, 9999)}"
 
-# ===============================================
 # LEGITIMATE EMAIL BUILDERS
-# ===============================================
+"""
+Each function below builds a different type of legitimate email.
+
+They simulate:
+- Real business communication
+- Professional tone
+- Valid domain and links
+"""
+
 
 def make_legit_shipping(style: str, length: str) -> Dict[str, str]:
     org = random.choice([o for o in LEGIT_ORGS if "Delivery" in o["brand"] or "Services" in o["brand"]])
@@ -510,9 +564,17 @@ def make_legit_password_reset_confirmation(style: str, length: str) -> Dict[str,
         "body": join_lines(lines)
     }
 
-# ===================================================
 # PHISHING EMAIL BUILDERS
-# ===================================================
+"""
+Each function below builds a phishing email.
+
+Common phishing characteristics included:
+- Urgency 
+- Threats
+- Suspicious links
+- Generic or fake organisations
+
+"""
 
 def make_phish_account_verification(style: str, length: str) -> Dict[str, str]:
     brand = random.choice(PHISH_BRANDS)
@@ -738,10 +800,9 @@ def make_phish_university_portal(style: str, length: str) -> Dict[str, str]:
         "body": join_lines(lines)
     }
 
-# =============================================
 # BUILDER COLLECTIONS
-# =============================================
 
+# Lists of all builder functions for easy random selection
 LEGIT_BUILDERS = [
     make_legit_shipping,
     make_legit_meeting,
@@ -760,11 +821,12 @@ PHISH_BUILDERS = [
     make_phish_university_portal,
 ]
 
-# ======================================
 # MASTER GENERATOR
-# ======================================
 
 def generate_email(force_label: str = None) -> Dict[str, str]:
+    """
+    Generates a random single email.
+    """
     style = random.choice(STYLE_OPTIONS)
     length = random.choice(LENGTH_OPTIONS)
 
@@ -781,7 +843,11 @@ def generate_email(force_label: str = None) -> Dict[str, str]:
     return email
 
 def generate_emails(count: int = 100, balance: bool = True) -> List[Dict[str, str]]:
+    """
+    Generates multiple emails. 
+    """
     emails = []
+
 
     if balance:
         half = count // 2
@@ -795,5 +861,6 @@ def generate_emails(count: int = 100, balance: bool = True) -> List[Dict[str, st
         for _ in range(count):
             emails.append(generate_email())
 
+    # Shuffle to mix phishing and legitimate emails 
     random.shuffle(emails)
     return emails

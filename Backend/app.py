@@ -1,11 +1,13 @@
 """
-Local Flask API for PhishDefender inbox loading and email classification.
+app.py
 
-what this file does
-1. Serves the frontend files
-2. Loads the trained ML model and vectorizer
+Local Flask backend for the PhishDefneder projects.
+
+What this file does:
+1. Serves the frontend files (HTML, CSS, JavaScript)
+2. Loads the trained ML model and TF-IDF vectroizer
 3. Loads trusted domains from a CSV
-4. Builds extra phishing related  feaures for each email
+4. Builds extra phishing related features for each email
 5. Classifies emails as phishing or legitimate
 6. Generates explanations using:
     - Custom rule based logic
@@ -16,12 +18,12 @@ what this file does
 
 # Imports
 
-import imaplib          # Handels Gmail IMAP logic errors
-import joblib           # Loads saved ML model and vectorizer
-import pandas as pd     # Used for feature tables and CSV loading 
-import numpy as np      # Used for probability calculations and arrays
-import re               # Used for text cleaning and regex checks
-import shap             # Used for SHAp explainability
+import imaplib          # Handels Gmail IMAP logic/fetch errors
+import joblib           # Loads saved ML model and vectorizer files
+import pandas as pd     # Used for reading CSV files and building feature tables
+import numpy as np      # Used for numeric operations and probability formatting
+import re               # Used for regex based text cleaning
+import shap             # Used for SHAP explainability
 
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
@@ -30,18 +32,20 @@ from lime.lime_text import LimeTextExplainer
 from email_service import fetch_all_emails
 from scipy.sparse import hstack, csr_matrix
 
-# Paths and App Setup
+# Paths and Flask App Setup
 
-# Base project folder
+# BASE_DIR points to the root project folder.
+# This makes file paths work more reliably across machines. 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Frontend folder for HTML/CSS/JS
+# Frontend folder for frontend files
 FRONTEND_DIR = BASE_DIR / "Frontend"
 
 # Folder containing trained model files
 MODELS_DIR = BASE_DIR / "models"
 
 # Folder contaning datasets / trusted domain CSV
+# static_folder/static_url_path allow Flask to serve the frontend directly.
 DATA_DIR = BASE_DIR / "data"
 
 # Create Flask app
@@ -61,23 +65,25 @@ CORS(app)
 def serve_index():
     return send_from_directory(FRONTEND_DIR, "index.html")
 
-# Serves an other frontend file such as CSS, JS, images, other HTML pages
+# Serves an other frontend file such as CSS, JS, HTML pages
 @app.route("/<path:filename>")
 def serve_frontend_file(filename):
     return send_from_directory(FRONTEND_DIR, filename)
 
 # Load Model and Vectroizer
 
-# Load the best trained model
+# Load the trained phishing detection model
 MODEL = joblib.load(MODELS_DIR / "phishing_model.pkl")
 
-# Locate the TF-IDF vectorizer used during training
+# Load the TF-IDF vectorizer used during training
+# This must match the model exactly, otherwise predictions will break.
 VECTORIZER = joblib.load(MODELS_DIR / "vectorizer.pkl")
 
 # Store class names exactly as used by the model
 CLASS_NAMES = list(MODEL.classes_)
 
-# Names of the extra engineered features added beside TF-IDF
+# Names of the extra engineered features added alongside TF-IDF features
+# These are manually designed features intended to capture suspicous patterns.
 ENGINEERED_FEATURE_NAMES = [
     "link_count",
     "has_urgent_words",
@@ -92,7 +98,7 @@ LIME_EXPLAINER = LimeTextExplainer(
     class_names=CLASS_NAMES
 )
 
-# SHAP explainer is created lazily later
+# SHAP explainer is created only when first needed.
 SHAP_EXPLAINER = None
 SHAP_INIT_ATTEMPTED = False
 
@@ -100,6 +106,7 @@ SHAP_INIT_ATTEMPTED = False
 # Load Trusted Domains
 
 # This set stores trusted domains such as google.com, microsoft.com etc.
+# It is used as part of the explanation logic, not as the main prediction itself.
 trusted_domains = set()
 
 # File path for tursted domains CSV
@@ -129,15 +136,13 @@ except Exception as e:
 
 def extract_sender_domain(sender: str) -> str:
     """
-    Extracts email domain from sender strings like:
-    Google <no-reply@accounts.google.com>
-    no-reply@gmail.com
+    Extracts email domain from sender strings
 
-    Returns just the domain part.
+    This helps check whether the sender appear to come from a known domain.
     """
     sender = (sender or "").strip().lower()
 
-    # If sender is in format Name <email@domain.com>, pull out only email
+    # If sender is in format Name <email@domain.com>, extract just the email part
     if "<" in sender and ">" in sender:
         start = sender.find("<") + 1
         end = sender.find(">")
@@ -152,9 +157,8 @@ def extract_sender_domain(sender: str) -> str:
 def reduce_to_base_domain(domain: str) -> str:
     """
     Reduces subdomians to a base domain
-    Example:
-    accounts.google.com -> google.com
-    mail.github.com -> github.com
+    
+    This allows more felxible trusted domain matching.
     """
     parts = domain.split(".")
     if len(parts) >= 2:
@@ -165,8 +169,15 @@ def reduce_to_base_domain(domain: str) -> str:
 
 def normalise_email_text(text: str) -> str:
     """
-    Cleans and standardises email text before vectorising. Removes repeated spaces and strips 
-    structural words such as: Subject:, From:, Body:
+    Clean and standardise email text before vectroisation.
+
+    What this does:
+    - Converts missing values to an empty string
+    - Removes repeated spaces/newlines
+    - Removes structural labels such as Subject: , From:, Body:
+    - Converts text to lowercase
+
+    This keeps the input format consistent for the ML model.
     """
     text = str(text or "")
     text = re.sub(r"\s+", " ", text)
@@ -186,7 +197,7 @@ def count_links(text: str) -> int:
 
 def contains_urgent_words(text: str) -> int:
     """
-    Returns 1 if urgent / threatening words appear, else 0
+    Returns 1 if the email contains urgent / threatening language appear, otherwise 0.
     """
     text = str(text or "").lower()
     urgent_words = [
@@ -197,7 +208,7 @@ def contains_urgent_words(text: str) -> int:
 
 def contains_account_words(text: str) -> int:
     """
-    Returns 1 if account / login related words appear, else 0
+    Return 1 if the email contains account / login related words appear, otherwise 0
     """
     text = str(text or "").lower()
     account_words = [
@@ -208,7 +219,7 @@ def contains_account_words(text: str) -> int:
 
 def contains_payment_words(text:str) -> int:
     """
-    Return 1 if payment / banking related words appear, else 0
+    Return 1 if email contains payment / banking related words appear, otherwise 0
     """
     text = str(text or "").lower()
     payment_words = [
@@ -220,12 +231,13 @@ def contains_payment_words(text:str) -> int:
 def exclamation_count(text: str) -> int:
     """
     Counts how many exclamation marks are in the text.
+    Excessive punctuation can sometimes indicate suspicious or agressive wording. 
     """
     return str(text or "").count("!")
 
 def uppercase_ratio(text: str) -> float:
     """
-    Calculates what proportion of letters are uppercase. Useful for spotting unusally shouty emails.
+    Calculates what proportion of letters are uppercase.
     """
     text = str(text or "")
     letters = [c for c in text if c.isalpha()]
@@ -237,8 +249,9 @@ def uppercase_ratio(text: str) -> float:
 
 def build_engineered_features_from_texts(texts):
     """
-    Builds the extra phishing realted feaures for one or more texts. Returns them as a sparse matrix
-    so they can be stacked beside TF-IDF features
+    Builds the manually engineered phishing realted features for one or more emails. 
+
+    Returns them as a sparse matrix so it can be combined with the TF-IDF text features.
     """
     features = pd.DataFrame({
         "link_count": [count_links(text) for text in texts],
@@ -252,8 +265,11 @@ def build_engineered_features_from_texts(texts):
 
 def build_model_input(texts):
     """
-    Builds the final model Input: 
-    TF-IDF text features + engineered phishing features
+    Builds the final model input by combining:
+    1. TF-IDF text features
+    2. Extra engineered phishing related features
+
+    The Final result is what gets sent into the trained ML model. 
     """
     cleaned_texts = [normalise_email_text(text) for text in texts]
     text_vectors = VECTORIZER.transform(cleaned_texts)
@@ -264,7 +280,7 @@ def build_model_input(texts):
 
 def get_all_feature_names():
     """
-    Returns the full list of model feature names:
+    Returns the full list of model feature names.
     TF-IDF feautres first, then engineered features.
     """
     tfidf_names = list(VECTORIZER.get_feature_names_out())
@@ -272,7 +288,9 @@ def get_all_feature_names():
 
 def get_shap_explainer():
     """
-    Creates the SHAP explainer only once, when first needed.
+    Creates the SHAP explainer once, when first needed.
+
+    This avoids repeatdly building the explainer for every email.
     """
     global SHAP_EXPLAINER, SHAP_INIT_ATTEMPTED
 
@@ -282,7 +300,7 @@ def get_shap_explainer():
     SHAP_INIT_ATTEMPTED = True
 
     try:
-        # Create a simple empty background vector with same feature size
+        # Create a minimal background vector with the correct feature size.
         background = csr_matrix((1, len(get_all_feature_names())))
         SHAP_EXPLAINER = shap.LinearExplainer(MODEL, background)
         print("SHAP explainer initialised.")
@@ -329,6 +347,7 @@ def generate_shap_explanation(model_input, predicted_label, top_n=6):
 
         pairs = []
         for feature, value in zip(feature_names, values):
+            #Ignore near zero contributions because they are not meaninful
             if abs (float(value)) < 1e-9:
                 continue
             
@@ -337,7 +356,7 @@ def generate_shap_explanation(model_input, predicted_label, top_n=6):
                 "weight": round(float(value), 4)
             })
         
-        # Keep strongest ffeatures only
+        # Keep strongest features only
         pairs = sorted(pairs, key=lambda x: abs(x["weight"]), reverse=True)[:top_n]
 
         positive_features = [item["feature"] for item in pairs if item["weight"] > 0]
@@ -376,8 +395,8 @@ def generate_shap_explanation(model_input, predicted_label, top_n=6):
 
 def predict_proba_for_lime(texts):
     """
-    LIME need a function that takes raw texts and returns class probabilities.
-    This adapts the model into the format.
+    LIME requires a function that takes raw texts and returns class probabilities.
+    This function adapts the phishing model into the format LIME expects.
     """
     model_input = build_model_input(texts)
 
@@ -387,13 +406,13 @@ def predict_proba_for_lime(texts):
     if hasattr(MODEL, "decision_function"):
         scores = MODEL.decision_function(model_input)
 
-        # Convert single decision scores into two class probabilities
+        # Convert raw decision scores into two class probabilities
         if len(scores.shape) == 1:
             probs_pos = 1 / (1 + np.exp(-scores))
             probs_neg = 1 - probs_pos
             return np.vstack([probs_neg, probs_pos]).T
             
-    # Fallback if predict_proba does not exsit
+    # Fallback if the model has neither predict_proba nor usable decision scores
     predictions = MODEL.predict(model_input)
     output = []
 
@@ -407,15 +426,15 @@ def predict_proba_for_lime(texts):
 
 def generate_lime_explanation(combined_text, predicted_label):
     """
-    Generates LIME explanation for one email.
+    Generates LIME explanation for a single email.
     Returns:
     - summary sentence
-    - top contibuting text features
+    - The most important text features influencing the prediction
         """
     try: 
         safe_text = normalise_email_text(combined_text)
 
-        # Skip extremely short texts
+        # Skip extremely short texts because they do not contain enough information
         if len(safe_text) < 20:
             return {
                 "summary": "This email did not contain enough text for a detailed AI explanation.",
@@ -431,6 +450,7 @@ def generate_lime_explanation(combined_text, predicted_label):
         label_index = CLASS_NAMES.index(predicted_label)
         feature_weights = explanation.as_list(label=label_index)
 
+        # Remove filler tokens that are only presnt becuase of how the text was combined
         stop_tokens = {"subject", "from", "body", "com"}
 
         top_features = []
@@ -486,42 +506,46 @@ def generate_lime_explanation(combined_text, predicted_label):
 
 def classify_email(email_item: dict) -> dict:
     """
-    Takes one email dictionary and returns:
-    - classification
+    Classify a single email and return an enriched result dictionary. 
+
+    Returned data includes:
+    - prediction label
     - confidence scores
+    - extracted sender/domain information
     - engineered features
-    - trust checks
-    - human explanation
+    - trusted domain check
+    - rules based explanation
     - LIME explanation
     - SHAP explanation
     """
 
-    # Pull out main email fields
+    # Extract the core fields from the incoming email dictionary
     subject = (email_item.get("subject") or "").strip()
     sender = (email_item.get("from") or "").strip()
     body = (email_item.get("body") or "").strip()
 
-    # Extract sender domain and reduce to base domain
+    # Extract sender domain information
     sender_domain = extract_sender_domain(sender)
     base_domain = reduce_to_base_domain(sender_domain)
 
-    # Build one combined text string
+    # combine all email content into one text block for the model
     combined_text = f"Subject: {subject}\nFrom: {sender}\nBody: {body}".strip()
 
-    # Clean text properly as a STRING, not a list
+    # Normalise the text so it matches the format used during training
     cleaned_text = normalise_email_text(combined_text)
 
-    # Build model input using TF-IDF + engineered features
-    # build_model_input expects a list of texts, so wrap once here only
+    # Build the final model input
+    # build_model_input expects a list, even for a single email
     model_input = build_model_input([cleaned_text])
 
-    # Predict phishing / legitimate
+    # Generate the prediction
     prediction = MODEL.predict(model_input)[0]
 
-    # Confidence scores
+    # Initialise confidence scores
     phishing_confidence = None
     legitimate_confidence = None
 
+    # Prefer true probabilits is the model supports them
     if hasattr(MODEL, "predict_proba"):
         probs = MODEL.predict_proba(model_input)[0]
         classes = list(MODEL.classes_)
@@ -530,6 +554,7 @@ def classify_email(email_item: dict) -> dict:
         phishing_confidence = float(probs[phishing_index])
         legitimate_confidence = float(probs[legitimate_index])
 
+    # If probabilits are unavailable, approximate them from the decision score
     elif hasattr(MODEL, "decision_function"):
         raw_score = float(MODEL.decision_function(model_input)[0])
         phishing_confidence = max(0.0, min(1.0, (raw_score + 3.0) / 6.0))
@@ -539,12 +564,13 @@ def classify_email(email_item: dict) -> dict:
     lime_data = generate_lime_explanation(combined_text, prediction)
     shap_data = generate_shap_explanation(model_input, prediction)
 
+    # Check whether the sender appear to come from a strusted domain
     is_trusted = (
         sender_domain in trusted_domains or
         base_domain in trusted_domains
     )
 
-    # Compute engineered details for frontend display
+    # Compute engineered features for display in the frontend
     engineered_details = {
         "link_count": count_links(cleaned_text),
         "has_urgent_words": bool(contains_urgent_words(cleaned_text)),
@@ -554,7 +580,8 @@ def classify_email(email_item: dict) -> dict:
         "uppercase_ratio": round(uppercase_ratio(cleaned_text), 4)
     }
 
-    # Human readable explanation
+    # Build a simple human readable explanation summary
+    # This is seperate from LIME/SHAP and is designed to be easier for users to read
     explanation_summary = []
 
     if prediction == "phishing":
@@ -579,6 +606,7 @@ def classify_email(email_item: dict) -> dict:
         if engineered_details["uppercase_ratio"] > 0.30:
             explanation_summary.append("High use of uppercase text")
 
+        # Fallback explanation if no rule based reasons were triggered
         if not explanation_summary:
             explanation_summary.append("Model detected suspicious patterns")
 
@@ -590,7 +618,7 @@ def classify_email(email_item: dict) -> dict:
 
         explanation_summary.append("Email appears safe based on language patterns")
 
-    # Debug print in terminal
+    # Debug output printed in the terminal for development / testing purposes
     print("\n--- Email Classification ---")
     print("Subject:", subject)
     print("From:", sender)
@@ -605,7 +633,7 @@ def classify_email(email_item: dict) -> dict:
     print("SHAP Summary:", shap_data.get("summary"))
     print("---------------------------------")
 
-    # Build final response object
+    # Build the final response object returned ton the frontend
     enriched = dict(email_item)
     enriched["prediction"] = prediction
     enriched["phishing_confidence"] = phishing_confidence
@@ -619,7 +647,6 @@ def classify_email(email_item: dict) -> dict:
     enriched["lime_features"] = lime_data.get("features", [])
     enriched["shap_summary"] = shap_data.get("summary", "")
     enriched["shap_features"] = shap_data.get("features", [])
-    enriched["explanation_features"] = lime_data.get("features", [])  # compatibility with frontend 
 
     return enriched
 
@@ -628,17 +655,16 @@ def classify_email(email_item: dict) -> dict:
 @app.route("/api/emails", methods=["POST"])
 def emails():
     """
-    Expects JSON like:
-    {
-        "email": "email@gmail.com",
-        "appPassword": "16 character app password"
-    }
+    Fetch emails from Gmail, classify them, and return the results.
 
     Steps:
     1. Login to Gmail
     2. Fetch inbox emails
     3. Classify each email
-    4. Return all emails + phishing only + legitimate only 
+    4. Return:
+        - all emails 
+        - phishing emails only 
+        - legitimate emails only 
     """
     data = request.get_json(force=True)
 
@@ -667,8 +693,15 @@ def emails():
     except Exception as exc:
         return jsonify({"error": f"Server error: {str(exc)}"}), 500
 
+# API Route - Fetch Only New Emails 
+
 @app.route("/api/emails/new", methods=["POST"])
 def get_new_emails():
+    """
+    Fetch only emails that arrived after the most recently seen email UID
+
+    This is useful for refresh behaviour, because it avoid reloading and reclassifying the entire inbox every time
+    """
     data = request.get_json(force=True) or {}
 
     gmail_address = (data.get("email") or "").strip()
@@ -697,6 +730,7 @@ def get_new_emails():
 
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
-# Run App
+    
+# Run Flask App
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

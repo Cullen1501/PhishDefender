@@ -1,8 +1,0 @@
-My dataset is:
-
-phishing: 1569  
-legitimate: 5
-
-The model may just predict phishing most of the time
-Accuracy looks high but is misleading
-mention this as a limitation 

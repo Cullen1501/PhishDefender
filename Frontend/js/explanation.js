@@ -1,8 +1,23 @@
+/*
+explanation.js
+
+Purpose:
+Handles rendering of the explanation page, showing why each email was classified as phishing or legitimate.
+
+Key features:
+- Loads analysed emails from sessionStorage
+- Dynamically bui;ds explanation cards
+- Displays LIME and SHAP outputs
+- Supports filtering by prediction type
+*/
+
 document.addEventListener("componentsLoaded", () => {
+  // Main UI elements
   const explanationList = document.getElementById("explanationList");
   const backToInboxBtn = document.getElementById("backToInboxBtn");
   const filterButtons = document.querySelectorAll(".filter-btn");
 
+  // Escapes HTML to prevent injection attacks and broken rendering
   function escapeHtml(value) {
     return String(value || "")
       .replaceAll("&", "&amp;")
@@ -12,6 +27,7 @@ document.addEventListener("componentsLoaded", () => {
       .replaceAll("'", "&#39;");
   }
 
+  // Retrieves analysed emails stored in sessionStorage 
   function getStoredEmails() {
     try {
       const raw = sessionStorage.getItem("pd_analysed_emails");
@@ -24,22 +40,26 @@ document.addEventListener("componentsLoaded", () => {
     }
   }
 
+    // Formats confidence values into percentages
   function percent(value) {
     return typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "N/A";
   }
 
+  // Converts confidence value into width for progress bars
   function widthPercent(value) {
     return typeof value === "number"
       ? `${Math.max(0, Math.min(100, value * 100))}%`
       : "0%";
   }
 
+  // Formats feature weights (used in LIME/SHAP)
   function formatWeight(weight) {
     if (typeof weight !== "number") return "";
     const sign = weight > 0 ? "+" : "";
     return `${sign}${weight.toFixed(4)}`;
   }
 
+  // Renders simple text explanation lists
   function renderTextList(items, type) {
     if (!Array.isArray(items) || items.length === 0) {
       return `<div class="reason-chip ${type}">No details available.</div>`;
@@ -50,6 +70,7 @@ document.addEventListener("componentsLoaded", () => {
       .join("");
   }
 
+  // Renders feature importance lists (LIME/SHAP)
   function renderFeatureList(features) {
     if (!Array.isArray(features) || features.length === 0) {
         return `<div class="reason-chip neutral">No feature contributions available.</div>`;
@@ -76,6 +97,7 @@ document.addEventListener("componentsLoaded", () => {
     .join("");
   }
 
+  // Creates a full explanation card for a single email
   function createCard(email) {
     const prediction = email.prediction || "unknown";
     const predictionClass =
@@ -169,6 +191,7 @@ document.addEventListener("componentsLoaded", () => {
     return article;
   }
 
+  // Renders emails based on selected filter
   function renderEmails(filter = "all") {
     const emails = getStoredEmails();
 
@@ -201,10 +224,12 @@ document.addEventListener("componentsLoaded", () => {
     });
   }
 
+  // Navigation button back to inbox
   backToInboxBtn?.addEventListener("click", () => {
     window.location.href = "index.html";
   });
 
+  // Filter button logic
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
       filterButtons.forEach((btn) => btn.classList.remove("is-active"));
@@ -213,5 +238,6 @@ document.addEventListener("componentsLoaded", () => {
     });
   });
 
+  // Inital render
   renderEmails("all");
 });

@@ -1,19 +1,39 @@
-document.addEventListener("componentsLoaded", () => {
-  const viewer = document.querySelector(".viewer");
-  const listPanel = document.querySelector(".list");
-  const phishingList = document.getElementById("phishingList");
-  const legitimateList = document.getElementById("legitimateList");
-  const phishingCount = document.getElementById("phishingCount");
-  const legitimateCount = document.getElementById("legitimateCount");
-  const viewerStatus = document.getElementById("viewerStatus");
-  const refreshBtn = document.getElementById("refreshInboxBtn");
-  const analyseBtn = document.getElementById("analyseBtn");
+/*
+inboxController.js
 
+Purpose:
+Handles all inbox erlated functionallity for the PhishDefender frontend.
+
+What this file does:
+- Displays login panel if user is not authenticated 
+- Fetchs emails from backend API
+- Caches emails in sessionStorage
+- Render inbox and classification results
+- Handles user interactions (clicking emails, refreshing inbox, analysing emails)
+*/
+
+document.addEventListener("componentsLoaded", () => {
+  // DOM element references
+  const viewer = document.querySelector(".viewer");                     // Email viewer panel
+  const listPanel = document.querySelector(".list");                    // Inbox list panel
+  const phishingList = document.getElementById("phishingList");         // Phishing results list
+  const legitimateList = document.getElementById("legitimateList");     // Legitimate results list
+  const phishingCount = document.getElementById("phishingCount");       // Phishing count badge
+  const legitimateCount = document.getElementById("legitimateCount");   // Legitimate count badge
+  const viewerStatus = document.getElementById("viewerStatus");         // Status text under viewer
+  const refreshBtn = document.getElementById("refreshInboxBtn");        // Refresh inbox button
+  const analyseBtn = document.getElementById("analyseBtn");             // Analyse button
+
+  // Stop execution if core UI is missing
   if (!viewer || !listPanel || !phishingList || !legitimateList) return;
 
-  const EMAIL_CACHE_KEY = "pd_analysed_emails";
-  const OPEN_EMAIL_KEY = "pd_open_email_uid";
+  // Session storage keys
+  const EMAIL_CACHE_KEY = "pd_analysed_emails";   // Stores analysed emails
+  const OPEN_EMAIL_KEY = "pd_open_email_uid";     // Stores currently opened email
 
+  // Helper Functions 
+
+  // Prevents HTML injection and broken UI rendering
   function escapeHtml(value) {
     return String(value || "")
       .replaceAll("&", "&amp;")
@@ -22,6 +42,8 @@ document.addEventListener("componentsLoaded", () => {
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
   }
+
+  // Cache Management
 
   function saveEmailsToCache(emails) {
     sessionStorage.setItem(EMAIL_CACHE_KEY, JSON.stringify(emails || []));
@@ -37,6 +59,8 @@ document.addEventListener("componentsLoaded", () => {
     }
   }
 
+  // Open Email State
+
   function saveOpenEmail(emailObj) {
     if (!emailObj || !emailObj.uid) return;
     sessionStorage.setItem(OPEN_EMAIL_KEY, String(emailObj.uid));
@@ -50,6 +74,9 @@ document.addEventListener("componentsLoaded", () => {
     sessionStorage.removeItem(OPEN_EMAIL_KEY);
   }
 
+  // UI Rendering Functions
+
+  // Default viewer state
   function renderWelcome(username = "") {
     viewer.innerHTML = `
       <h3>Welcome${username ? `, ${escapeHtml(username)}` : ""}</h3>
@@ -59,11 +86,14 @@ document.addEventListener("componentsLoaded", () => {
     if (viewerStatus) viewerStatus.textContent = "No Email Selected";
   }
 
+  // Shows status message in inbox panel
   function setInboxStatus(message) {
     listPanel.innerHTML = `
       <div class="list-status">${escapeHtml(message)}</div>
     `;
   }
+
+  // Login Panel
 
 function renderLoginPanel(message = "") {
   renderWelcome("");
@@ -75,19 +105,9 @@ function renderLoginPanel(message = "") {
       <p>Use your Gmail address and a Google App Password.</p>
       ${message ? `<p class="error-text">${escapeHtml(message)}</p>` : ""}
 
-      <input 
-        id="inlineGmailInput" 
-        class="login-input"
-        type="email" 
-        placeholder="Your Gmail address" 
-      />
+      <input id="inlineGmailInput" class="login-input"type="email" placeholder="Your Gmail address" />
 
-      <input 
-        id="inlineAppPassInput" 
-        class="login-input"
-        type="password" 
-        placeholder="Gmail App Password" 
-      />
+      <input id="inlineAppPassInput" class="login-input" type="password" placeholder="Gmail App Password" />
 
       <div class="login-panel-actions">
         <button id="inlineLoginBtn" type="button" class="action-btn primary-btn">Login</button>
@@ -96,6 +116,7 @@ function renderLoginPanel(message = "") {
     </div>
   `;
 
+  // Login button logic
   document.getElementById("inlineLoginBtn")?.addEventListener("click", () => {
     const email = (document.getElementById("inlineGmailInput")?.value || "").trim();
     const pass = (document.getElementById("inlineAppPassInput")?.value || "").trim();
@@ -109,6 +130,7 @@ function renderLoginPanel(message = "") {
     loadInbox();
   });
 
+  // Clear inputs
   document.getElementById("inlineClearBtn")?.addEventListener("click", () => {
     const emailInput = document.getElementById("inlineGmailInput");
     const passInput = document.getElementById("inlineAppPassInput");
@@ -117,6 +139,8 @@ function renderLoginPanel(message = "") {
     if (passInput) passInput.value = "";
   });
 }
+
+// Email Viewer
 
   function openEmail(emailObj) {
     if (!emailObj) return;
@@ -152,6 +176,8 @@ function renderLoginPanel(message = "") {
           : "Viewing possible legitimate email";
     }
   }
+
+// Main Logic
 
   function makeInboxRow(emailObj) {
     const item = document.createElement("button");
@@ -321,6 +347,8 @@ function renderLoginPanel(message = "") {
     }
   }
 
+// Event handlers
+
   refreshBtn?.addEventListener("click", loadInbox);
 
   analyseBtn?.addEventListener("click", () => {
@@ -336,8 +364,6 @@ function renderLoginPanel(message = "") {
 
   window.loadInbox = loadInbox;
 
-  // IMPORTANT:
-  // Do NOT auto-load from backend here.
-  // Just restore the previously classified inbox from sessionStorage.
+  // Load cached emails 
   renderCachedInbox();
 });

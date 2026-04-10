@@ -1,13 +1,35 @@
-<div class="navbar">
-  <div class="logo">PhishDefender</div>
+<!-- 
+header.html
 
+This file defines the navigation bar (header) used across all pages.
+
+Purpose:
+- Provides navigation between pages
+- Displays the logged in user 
+- Allows user to log in / out
+
+This component is dynamicalkly loaded into each page using a component loader.
+-->
+
+<div class="navbar">
+  <!-- Clickable App Name-->
+  <div class="title">
+    <a href="index.html">PhishDefender</a>
+  </div>
+
+    <!-- Navigation links -->
   <div class="nav-center">
+    <!-- Main Page -->
     <a href="index.html">Analyse Email</a>
+    <!-- About Page -->
     <a href="about.html">About</a>
   </div>
 
+  <!-- Right side controls (user + login/logout)-->
   <div class="nav-right">
+    <!-- Displays the logged in username (set via JavaScript) -->
     <span id="headerUser" class="header-user"></span>
+    <!-- Login / Logout button (text changes dynamically via JS) -->
     <button id="headerAuthBtn" type="button" class="header-auth-btn">Login</button>
   </div>
 </div>

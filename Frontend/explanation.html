@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset+"UTF-8">
-    <meta name="viewport" content=""width=device-width, initial-scale="1.0">
+    <meta charset="UTF-8">
+    <!-- Browser tab title-->
     <title>PhishDefender - Classification Review</title>
+    <!-- Style Sheet -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Header -->
     <div id="header-placeholder"></div>
 
+    <!-- Main explanation page content -->
     <main class="explanation-page">
         <div class="explanation-shell">
+            <!-- Intro section -->
             <section class="explanation-intro">
                 <p class="page-kicker">Classification Review</p>
                 <h1 class="page-title">Why each email was classified this way</h1>
@@ -20,6 +24,7 @@
                 </p>
             </section>
 
+            <!-- Toolbar section with navigatoin and filters -->
             <section class="explanation-toolbar">
                 <div class="toolbar-left">
                     <button id="backToInboxBtn" class="small-action-btn"> Back to Inbox</button>
@@ -32,7 +37,7 @@
                 </div>
             </section>
 
-            
+            <!-- Information cards explaining how the page works -->
             <section class="explanation-info">
                 <div class="info-card">
                     <h2>How this explanation works</h2>
@@ -43,7 +48,7 @@
                     </p>
                     <p>
                         These explanations are designed to help users understand the decision, but they are
-                        not a guarantee that an email is definitely safe or definitely malicous. They should 
+                        not a guarantee that an email is definitely safe or definitely malicious. They should 
                         be used as decision support alongside normal caution. 
                     </p>
                 </div>
@@ -52,13 +57,13 @@
                     <h2>How to read the results</h2>
                     <ul class="explanation-help-list">
                         <li><strong>Overall explanation:</strong> quick human readable reason</li>
-                        <li><strong>LIME:</strong> importnat words for this specific email</li>
-                        <li><strong>SHAP:</strong> strongest model feature contibutions</li>
+                        <li><strong>LIME:</strong> important words for this specific email</li>
+                        <li><strong>SHAP:</strong> strongest model feature contributions</li>
                         <li><strong>Confidence bars:</strong> how strongly the model leaned each way</li>
                     </ul>
                 </div>
             </section>
-
+            <!-- Dynamic explanation cards are inserted here by explanation.js-->
             <section id="explanationList" class="explanation-list">
                 <div class="result-placeholder">
                     No analysed emails available yet. Go back to the inbox page and classify emails first.
@@ -67,8 +72,10 @@
         </div>
     </main>
 
+    <!-- Footer -->
     <div id="footer-placeholder"></div>
 
+    <!-- JavaScript Files -->
     <script src="js/componentLoader.js"></script>
     <script src="js/authController.js"></script>
     <script src="js/explanation.js"></script>

@@ -2,15 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Browser tab title -->
   <title>PhishDefender - Inbox Analysis Workspace</title>
+  <!-- Style Sheet -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body class="page-upload">
+  <!-- Header -->
   <div id="headerContainer"></div>
 
+  <!-- Main inbox analysis page -->
   <main class="upload-page">
     <section class="upload-shell">
+
+      <!-- Page intro / explanation -->
       <div class="upload-intro">
         <div>
           <h1 class="page-title">Inbox Analysis Workspace</h1>
@@ -19,16 +25,20 @@
           </p>
         </div>
       </div>
-
+      <!-- Top wrokspace: inbox list on the left, selected email viewer on the right -->
       <section class="top-workspace">
+
+        <!-- Inbox access/ inbox list panel -->
         <aside class="inbox-sidebar">
           <div class="panel-heading">
             <h2>Inbox Access</h2>
             <button id="refreshInboxBtn" class="small-action-btn" type="button">Refresh Inbox</button>
           </div>
+          <!-- Inbox list is filled dynamically by inboxController.js-->
           <div class="list"></div>
         </aside>
 
+        <!-- Selected email viewer -->
         <section class="viewer-panel">
           <div class="panel-heading">
             <h2>Selected Email</h2>
@@ -43,8 +53,9 @@
           </div>
         </section>
       </section>
-
+      <!-- Bottom workspace: phishing list, analysis button, legitimate list -->
       <section class="results-workspace">
+        <!-- Phishing results panel -->
         <div class="result-panel phishing-panel">
           <div class="panel-heading">
             <h2>Possible Phishing Emails</h2>
@@ -55,6 +66,7 @@
           </div>
         </div>
 
+        <!-- Middle action panel -->
         <div class="results-middle">
           <button class="analyse-btn" id="analyseBtn" type="button">Analyse Results</button>
           <p class="results-middle-text">
@@ -62,6 +74,7 @@
           </p>
         </div>
 
+        <!-- Legitimate results panel -->
         <div class="result-panel legitimate-panel">
           <div class="panel-heading">
             <h2>Possible Legitimate Emails</h2>
@@ -75,8 +88,10 @@
     </section>
   </main>
 
+  <!-- Footer -->
   <div id="footerContainer"></div>
 
+  <!-- JavaScript files-->
   <script src="js/componentLoader.js" defer></script>
   <script src="js/authController.js" defer></script>
   <script src="js/headerController.js" defer></script>

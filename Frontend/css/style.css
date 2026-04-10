@@ -1,6 +1,6 @@
 /*
-Global Reset: 
-Removes defualt browser spacing
+Global Reset:
+Removes default browser spacing
 */
 * {
   margin: 0;
@@ -10,8 +10,8 @@ Removes defualt browser spacing
 
 /*
 Body / Page Background:
-Sets the main font, dark gradient background, default text colour, 
-and makes the page stack vertically from top to botto
+Sets the main font, dark gradient background, default text colour,
+and makes the page stack vertically from top to bottom
 */
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -29,7 +29,7 @@ body {
 
 /*
 Navigation Bar:
-Styles the top navigation area including the logo, centre links, 
+Styles the top navigation area including the title, centre links,
 and right-side login/user area
 */
 .navbar {
@@ -40,13 +40,24 @@ and right-side login/user area
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Logo text shown in the top left of the navbar */
-.logo {
+/* Title text shown in the top left of the navbar */
+.title {
   font-size: 24px;
   font-weight: bold;
 }
 
-/* Centers the main navigation links across teh header */
+.title a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 24px;
+}
+
+.logo a:visited {
+  color: white;
+}
+
+/* Centers the main navigation links across the header */
 .nav-center {
   display: flex;
   justify-content: center;
@@ -73,8 +84,7 @@ and right-side login/user area
   background: rgba(56, 189, 248, 0.08);
 }
 
-/* Right side of the navbar for login/logout button 
-and logged in user text */
+/* Right side of the navbar for login/logout button and logged in user text */
 .nav-right {
   display: flex;
   align-items: center;
@@ -89,7 +99,7 @@ and logged in user text */
   opacity: 0.95;
 }
 
-/* Main authenitcation button in the header*/
+/* Main authentication button in the header */
 .header-auth-btn {
   padding: 8px 14px;
   border-radius: 10px;
@@ -100,7 +110,7 @@ and logged in user text */
   font-weight: 700;
 }
 
-/* Hover effect for thr auth button */
+/* Hover effect for the auth button */
 .header-auth-btn:hover {
   color: #38dbf8;
   border-color: rgba(56, 189, 248, 0.55);
@@ -130,19 +140,20 @@ Styles the footer container and its inner text
   margin-bottom: 8px;
 }
 
-/* Supportigng footer text */
+/* Supporting footer text */
 .footer-text {
   font-size: 14px;
   opacity: 0.85;
   margin-bottom: 10px;
 }
+
 /* Copyright text at the bottom of the footer */
 .footer-copyright {
   font-size: 13px;
   opacity: 0.65;
 }
 
-/* 
+/*
 Inline login panel:
 Styles the login form shown inside the inbox area
 */
@@ -153,7 +164,7 @@ Styles the login form shown inside the inbox area
   padding: 16px;
 }
 
-/*login panel heading */
+/* Login panel heading */
 .login-panel h3 {
   color: #38dbf8;
   margin-bottom: 10px;
@@ -185,7 +196,7 @@ Styles the login form shown inside the inbox area
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
-/* Holds login  action buttons side by side */
+/* Holds login action buttons side by side */
 .login-panel .actions {
   display: flex;
   gap: 10px;
@@ -201,13 +212,14 @@ Styles the login form shown inside the inbox area
   cursor: pointer;
   font-weight: 800;
 }
-/* Primary login/cornfim button */
+
+/* Primary login/confirm button */
 .login-panel .actions .primary {
   background: #38dbf8;
   color: black;
 }
 
-/* Hover effect for priamry button */
+/* Hover effect for primary button */
 .login-panel .actions .primary:hover {
   background: #0ea5e9;
 }
@@ -241,7 +253,7 @@ including intro section and content panels
   padding: 40px;
 }
 
-/* Main wrapper taht keeps about page content centered */
+/* Main wrapper that keeps about page content centered */
 .about-container {
   width: min(1200px, 100%);
   margin: 0 auto;
@@ -260,7 +272,7 @@ including intro section and content panels
   line-height: 38px;
 }
 
-/* Two column layout for the About page sections  */
+/* Two column layout for the About page sections */
 .about-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -276,7 +288,7 @@ including intro section and content panels
   backdrop-filter: blur(8px);
 }
 
-/* Shared card styling for each About panel */
+/* Large About panel spanning both columns */
 .about-panel-large {
   grid-column: span 2;
 }
@@ -284,7 +296,7 @@ including intro section and content panels
 /* Inner content box inside About cards */
 .about-panel-content {
   background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba (255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 16px;
   padding: 18px;
 }
@@ -296,12 +308,12 @@ including intro section and content panels
   margin-bottom: 12px;
 }
 
-/* Resposive styling for About page on smaller screens stacks panels into one column */
+/* Responsive styling for About page on smaller screens stacks panels into one column */
 @media (max-width: 1100px) {
-  .about-sections {
+  .about-section {
     grid-template-columns: 1fr;
   }
-  
+
   .about-panel-large {
     grid-column: span 1;
   }
@@ -309,7 +321,7 @@ including intro section and content panels
 
 /*
 Upload Page / Inbox Workspace:
-Styles the main email workspace inclduing inbox, viewer, results area, and action controls.
+Styles the main email workspace including inbox, viewer, results area, and action controls.
 */
 .page-upload .page-title {
   font-size: 34px;
@@ -330,7 +342,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   padding: 40px;
 }
 
-/* Keeps the upload workspace centerd and spaced */
+/* Keeps the upload workspace centered and spaced */
 .upload-shell {
   width: min(1380px, 100%);
   margin: 0 auto;
@@ -339,7 +351,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   gap: 24px;
 }
 
-/* Shared card style for intro, top workspace, and results */ 
+/* Shared card style for intro, top workspace, and results */
 .upload-intro,
 .top-workspace,
 .results-workspace {
@@ -400,7 +412,8 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   font-weight: 700;
   cursor: pointer;
 }
- /* Hover effect for small buttons */
+
+/* Hover effect for small buttons */
 .small-action-btn:hover,
 .small-inline-btn:hover {
   border-color: rgba(56, 189, 248, 0.5);
@@ -425,7 +438,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   overflow-y: auto;
 }
 
-/* Stacks items verically in inbox/reults lists */
+/* Stacks items vertically in inbox/results lists */
 .list,
 .result-list {
   display: flex;
@@ -433,7 +446,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   gap: 10px;
 }
 
-/* Minimum hieght for the email viewer panel */
+/* Minimum height for the email viewer panel */
 .viewer {
   min-height: 360px;
 }
@@ -445,7 +458,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   padding: 12px;
 }
 
-/* Logged in account summart shown above inbox */
+/* Logged in account summary shown above inbox */
 .login-summary {
   display: flex;
   align-items: center;
@@ -495,31 +508,31 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   margin-top: 4px;
 }
 
-/* Red marker for phishing classed emails */
+/* Red marker for phishing classified emails */
 .email-item.is-phishing,
 .result-item.is-phishing {
   border-left: 4px solid rgba(255, 99, 132, 0.95);
 }
 
-/* Green marker for legitimate classed emails*/
+/* Green marker for legitimate classified emails */
 .email-item.is-legitimate,
 .result-item.is-legitimate {
   border-left: 4px solid rgba(74, 222, 128, 0.95);
 }
 
-/* Small status text above/below viwer */
+/* Small status text above/below viewer */
 .viewer-status {
   font-size: 13px;
   opacity: 0.85;
 }
 
-/* Email title isnide viewer */
+/* Email title inside viewer */
 .email-view-content h3 {
   margin-bottom: 10px;
   color: #38dbf8;
 }
 
-/* Paragrpah spacing in opeend email view */
+/* Paragraph spacing in opened email view */
 .email-view-content p {
   margin-bottom: 8px;
 }
@@ -538,7 +551,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   align-items: stretch;
 }
 
-/* Small  count badge for number of results */
+/* Small count badge for number of results */
 .panel-count {
   min-width: 40px;
   text-align: center;
@@ -572,7 +585,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   line-height: 1.5;
 }
 
-/* Responsive layout for smaller screens stacks on top and results workspace into one column */
+/* Responsive layout for smaller screens stacks top and results workspace into one column */
 @media (max-width: 1100px) {
   .top-workspace,
   .results-workspace {
@@ -624,7 +637,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap:16px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -660,7 +673,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   border-left: 5px solid rgba(255, 99, 132, 0.95);
 }
 
-.explanation-card.email-item.is-legitimate {
+.explanation-card.is-legitimate {
   border-left: 5px solid rgba(74, 222, 128, 0.95);
 }
 
@@ -691,7 +704,7 @@ Styles the main email workspace inclduing inbox, viewer, results area, and actio
   border: 1px solid rgba(255, 99, 132, 0.35);
 }
 
-.prediction-bdage.is-legitimate {
+.prediction-badge.is-legitimate {
   background: rgba(74, 222, 128, 0.18);
   color: #86efac;
   border: 1px solid rgba(74, 222, 128, 0.35);

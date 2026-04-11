@@ -101,7 +101,117 @@
                     </div>
                     <div class="about-panel-content">
                         <p>
-                            Coming soon...
+                            PhishDefender is designed to let users connect a Gmail inbox, load emails into the system,
+                            classify them as possible phishingor legitimate messages, and then review detailed explanations
+                            for each prediction.
+                        </p>
+
+                        <p><strong>1. Using the website</strong></p>
+                        <p>
+                            Start on the Inbox Analysis Workspace page. If you are not already logged in, the inbox panel
+                            will display a Gmail Login form. Enter you Gmail address and you Google App Password, then press
+                            <strong>Login</strong>. Once logged in, press <strong>Refresh Inbox</strong> to load your inbox
+                            emails from the backend system (this could take some time). PhishDefender will then classify each email
+                            and display them in three main areas: the inbox list, the selected email viewer, and the two result 
+                            panels for possible phishing and possible legitimate emails.
+                        </p>
+
+                        <p>
+                            You can click any email in the inbox or result panels to open it in the viewer. The viewer shows
+                            the email subject, sender, date, prediction, confidence scores, and message content. The 
+                            <strong>Analyse Results</strong> button takes you to the explanation page, where each classified email 
+                            can be reviewed in more detial.
+                        </p>
+
+                        <p><strong>2. How the explanation page works</strong></p>
+                        <p>
+                            The explanation page is designed to show not only what the model predicted, but also why that prediction
+                            was made. Each email is displayed in its own explanation card. At the top of each card, the subject
+                            and final prediction are shown. The left side displays the original email details, including sender, 
+                            date, trusted sender status, and email body. The right side contains the explanation outputs produced 
+                            by the system.
+                        </p>
+
+                        <p>
+                            The <strong>Overall explanation</strong> section gives a short human readable summary based on rule based phishing
+                            indicators, such as suspicous links, urgent wording, account related language, payment language, excessive punctuation, 
+                            or unusual use of capital letters. This is intended to make the results understandable for  users who may not be 
+                            familiar with machine learning concepts.
+                        </p>
+
+                        <p>
+                            The <strong>LIME summary</strong> and <strong>LIME top features</strong> sections explain which words or 
+                            short phrases in that specific email had the strongest infulence on the model's prediction. LIME works locally
+                            on one email at a time, so it helps explain why that individual message was classified in a particular way.
+                        </p>
+
+                        <p>
+                            The <strong> SHAP summary</strong> and <strong>SHAP top features</strong> section show which model features made the 
+                            strongest contribution to the prediction. These features can include both TF-IDF text terms and engineered phishing 
+                            indicators. Positive feature weights suggest stronger evidence toward one class, while negative feature weights suggest
+                            evidence in the opposite direction.
+                        </p>
+
+                        <p>
+                            The <strong>confidence bars</strong> show how strongly the model learned phishing or legitimate
+                            for that email. These bars should be traeated as decision support information rather than proof 
+                            that an email is definitly safe or definitly malicous.
+                        </p>
+
+                        <p>
+                            The filter buttons at the top of the explanation page allows the user to switch between viewing all 
+                            calssified emails, phishing only emails, or legitmate only email. This makes the page easier to review 
+                            when many emails have been analysed. 
+                        </p>
+
+                        <p><strong>3. How to create a Google App Password</strong></p>
+                        <p>
+                            Google states that you must first enable <strong>2-step Verification</strong> on your Google Account before you 
+                            can create an App Password. App Passwords are used when an app or device cannot use normal Google sign-in directly.
+                            Google also notes that App Passowrds may not be available if you are using a work or school account, security-key-only 
+                            2-step Verification, or Advanced Protection.
+                        </p>
+
+                        <p>
+                            To create one:
+                        </p>
+                        <p>
+                            First, sign in to your Google Account and enable 2-step Verification if it is not already turned on. Then open the Google App 
+                            Passwords page, sign in again if prompted, choose the app/device name, and generate a 16-character App Password. Copy that password 
+                            and paste it into the PhishDefender login form instead of your normal Gmail password. Google's offical App Passwords help page is here: 
+                            <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank" rel="noopener noreferrer">Google App Passwords Help</a>. 
+                            The offical 2-step Verification help page is here: <a href="https://support.google.com/accounts/answer/185839?hl=en" target="_blank" rel="noopener noreferrer">Google 2-step Verification Help</a>
+                        </p>
+
+                        <p>
+                            Once generated, enter your Gmail address and the App Password into the PhishDefender login panel, then press <strong>Login</strong>. Google notes that 
+                            App Passwords are usually entered once per app or device, and that they are revoked if you change you main Google Account password.
+                        </p>
+
+                        <p><strong>4. How the model works</strong></p>
+                        <p>
+                            The phishing detection model is trained on multiple phishing and legitimate email datasets that are first cleaned 
+                            and converted into a common format. The email text is processed using <strong>TF-IDF vectorisation</strong>, which 
+                            converts words and short phrases into numerical features based on how informative they are in the dataset. This allows the 
+                            model to learn common language patterns associated with phishing and legitimate emails.
+                        </p>
+
+                        <p>
+                            In addition to TF-IDF, the system also creates several <strong>engineered features</strong>. These include link count, presence of urgent words, 
+                            account related words, payment related words, number of exclamation marks, and uppercase ratio. These feautres are designed to capture behavioural warning
+                            sign often seen in phishing emails.
+                        </p>
+
+                        <p>
+                            The final model input is created by combining the TF-IDF features with the engineered features. Several machine learning models
+                            are trained and compared, including Logistic Regression, Naive Baynes, and Support Vector Machine. The best performing model is 
+                            selected using evaluation metrics such as accuracy, precision, recall, and F1-score.
+                        </p>
+
+                        <p>
+                            During live use, each email is cleaned in teh same way as the training data, transformed into the same feature format, and passed 
+                            into the saved model. The model then predicts whether the email is more likely to be phishing or legitimate. The result is shown in 
+                            the interface together with the rule based sumamry, confidence scores, and explainability outputs from LIME and SHAP.
                         </p>
                     </div>
                  </div>

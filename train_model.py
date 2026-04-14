@@ -66,7 +66,6 @@ These functions handle:
 
 Using helper function keeps the script easier to read and maintain
 """
-
 # Section printing helper 
 # Used to make terminal output easier to read
 def print_section(title):
@@ -421,6 +420,74 @@ def evaluate_models_on_dataset(dataset_name, df, results_list):
 # Graph saving helper
 # Saves dataset contribution analysis line graphs 
 
+def save_dataset_distribution_outputs(data, save_dir="models"):
+    """
+    Saves a bar chart showing the distribution of phishing vs legitimate examples
+    in the combined dataset, plus CSV and text summaries.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Count phishing vs legitimate
+    label_counts = data["label"].value_counts().reindex(
+        ["legitimate", "phishing"], fill_value=0
+    )
+
+    legitimate_count = int(label_counts.loc["legitimate"])
+    phishing_count = int(label_counts.loc["phishing"])
+    total_emails = legitimate_count + phishing_count
+
+    legitimate_pct = (legitimate_count / total_emails * 100) if total_emails else 0.0
+    phishing_pct = (phishing_count / total_emails * 100) if total_emails else 0.0
+
+    # Save CSV summary
+    summary_df = pd.DataFrame([
+        {
+            "class": "legitimate",
+            "count": legitimate_count,
+            "percentage": round(legitimate_pct, 2)
+        },
+        {
+            "class": "phishing",
+            "count": phishing_count,
+            "percentage": round(phishing_pct, 2)
+        }
+    ])
+    summary_df.to_csv(f"{save_dir}/dataset_distribution_summary.csv", index=False)
+
+    # Save text summary
+    with open(f"{save_dir}/dataset_distribution_summary.txt", "w", encoding="utf-8") as f:
+        f.write("Dataset Distribution Summary\n")
+        f.write("=" * 35 + "\n")
+        f.write(f"Total emails: {total_emails}\n")
+        f.write(f"Legitimate emails: {legitimate_count} ({legitimate_pct:.2f}%)\n")
+        f.write(f"Phishing emails: {phishing_count} ({phishing_pct:.2f}%)\n")
+
+    # Save bar chart
+    plt.figure(figsize=(8, 5))
+    bars = plt.bar(label_counts.index, label_counts.values)
+
+    plt.title("Final Dataset Class Distribution")
+    plt.xlabel("Email Class")
+    plt.ylabel("Number of Emails")
+
+    for bar, value in zip(bars, label_counts.values):
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            value,
+            f"{value:,}",
+            ha="center",
+            va="bottom"
+        )
+
+    plt.tight_layout()
+    plt.savefig(f"{save_dir}/dataset_distribution_chart.png")
+    plt.close()
+
+    print("Saved dataset distribution outputs:")
+    print(f"- {save_dir}/dataset_distribution_chart.png")
+    print(f"- {save_dir}/dataset_distribution_summary.csv")
+    print(f"- {save_dir}/dataset_distribution_summary.txt")
+
 def save_dataset_contribution_graphs(contrib_df):
     """
     Saves two graphs showing how model performance changes as more datasets are added:
@@ -496,6 +563,44 @@ def save_learning_curve(estimator, X, y, model_name, save_path):
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+
+def save_dataset_source_breakdown(data, save_dir="models"):
+    
+    # Saves a chart shwoing how many rows came from each source dataset.
+    
+    if "source" not in data.columns:
+        print("No 'source' column found. Skipping source breakdown chart.")
+        return
+    
+    os.makedirs(save_dir, exist_ok=True)
+
+    source_counts = data["source"].value_counts()
+
+    source_counts.to_csv(f"{save_dir}/dataset_source_breakdown.csv", header=["count"])
+
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(source_counts.index, source_counts.values)
+    plt.title("Dataset Source Breakdown")
+    plt.xlabel("Source Dataset")
+    plt.ylabel("Number of Emails")
+    plt.xticks(rotation=20, ha="right")
+    plt.tight_layout()
+
+    for bar, value in zip(bars, source_counts.values):
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            value,
+            f"{value:,}",
+            ha="center",
+            va="bottom"
+        )
+
+    plt.savefig(f"{save_dir}/dataset_source_breakdown.png")
+    plt.close()
+
+    print("Saved dataset source breakdown outputs:")
+    print(f"- {save_dir}/dataset_source_breakdown.png")
+    print(f"- {save_dir}/dataset_source_breakdown.csv")
 
 # Error analysis  helper
 # Saves all misclassified emails and seperates false positives / false negatives 
@@ -643,6 +748,7 @@ nazario_raw = pd.read_csv(nazario_path)
 phish_kaggle_raw = pd.read_csv(phish_kaggle_path)
 ceas_raw = pd.read_csv(ceas_path)
 
+
 # Show dataset columns 
 print("Spam train columns:", spam_train_raw.columns.tolist())
 print("Enron columns:", enron_raw.columns.tolist())
@@ -673,10 +779,15 @@ print_section("2. CLEAN AND STANDARDISE DATASETS")
 
 # Convert each raw dataset into the common project format
 spam_train = build_spam_train_dataset(spam_train_raw)
+spam_train["source"] = "Spam Train"
 enron = build_enron_dataset(enron_raw)
+enron["source"] = "Enron"
 nazario = build_nazario_dataset(nazario_raw)
+nazario["source"] = "Nazario"
 phish_kaggle = build_kaggle_dataset(phish_kaggle_raw)
+phish_kaggle["source"] = "Phish Kaggle"
 ceas = build_ceas_dataset(ceas_raw)
+ceas["source"] = "CEAS"
 
 # Combine Datasets
 
@@ -703,6 +814,9 @@ print()
 print("Final label counts:")
 print(data["label"].value_counts(dropna=False))
 print()
+
+save_dataset_distribution_outputs(data, save_dir="models")
+save_dataset_source_breakdown(data, save_dir="models")
 
 # Saftey check to make sure both classes still exist
 if data["label"].nunique() < 2:

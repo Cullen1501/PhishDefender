@@ -1,0 +1,5 @@
+Dataset Distribution Summary
+===================================
+Total emails: 76657
+Legitimate emails: 46722 (60.95%)
+Phishing emails: 29935 (39.05%)

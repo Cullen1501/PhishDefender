@@ -159,11 +159,24 @@ def fetch_all_emails(
     """
 
     # Connect to Gmail securely
-    mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
-    # Login using App Password
-    mail.login(gmail_address, app_password)
-    # Select inbox folder
-    mail.select("inbox")
+    try:
+
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        # Login using App Password
+        mail.login(gmail_address, app_password)
+        # Select inbox folder
+        mail.select("inbox")
+
+    except imaplib.IMAP4.error as e:
+        error_text = str(e).upper()
+
+        if "AUTHENTICATIONFAILED" in error_text or "INVALID CREDENTIALS" in error_text:
+            raise ValueError ("Incorrect Gmail address or App Password.")
+        
+        raise ValueError("Unabkle to connect to Gmail.")
+    
+    except Exception:
+        raise ValueError("Something went wrong while connecting to Gmail")
 
     try:
         # Search for emails 

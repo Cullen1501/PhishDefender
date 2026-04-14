@@ -1,4 +1,4 @@
-**PhishDefender******
+PhishDefender
 
 PhishDefender is a machine learning-based web application that detects phishing emails within a user's inbox. It classifies emails as either phishing or legitimate using a trained model and displays the results in an easy-to-understand interface.
 

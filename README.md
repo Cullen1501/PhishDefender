@@ -58,6 +58,7 @@ Use VS Code Live Server
 - Outputs classification + confidence score
 
 ## Project Structure
+``` bash
 Backend/
     app.py
     email_service.py
@@ -83,7 +84,7 @@ Explainable AI (LIME / SHAP)
 Improved classification accuracy
 Real-time email monitoring
 UI enhancements
-
+```
 ## Author
 Cullen Ledraw-Carrick
 BEng (Hons) Cybersecurity & Digital Forensics

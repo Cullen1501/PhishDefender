@@ -353,7 +353,7 @@ def create_vectorizer():
 # Creates the ML models used for comparison
 
 def create_models():
-    # Returns the set of machine learning models used in teh comparison stage.
+    # Returns the set of machine learning models used in the comparison stage.
     return {
         "Logistic Regression": LogisticRegression(max_iter=1000, class_weight="balanced"),
         "Naive Bayes": MultinomialNB(),
@@ -966,6 +966,9 @@ for name, model in models.items():
     recall = recall_score(y_test, predictions, pos_label="phishing", zero_division=0)
     f1 = f1_score(y_test, predictions, pos_label="phishing", zero_division=0)
 
+    # Build confusion matrix for this model
+    cm = confusion_matrix(y_test, predictions, labels=["legitimate", "phishing"])
+
     # print summary metrics 
     print(f"Accuracy : {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
@@ -977,6 +980,22 @@ for name, model in models.items():
 
     print("\nClassification Report:")
     print(classification_report(y_test, predictions, zero_division=0))
+
+    # Save confusion matrix image for this model
+    mod_name = name.lower().replace(" ", "_")
+
+    plt.figure(figsize=(6, 5))
+    ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["legitimate", "phishing"]
+    ).plot(cmap="Blues", values_format="d")
+    plt.title(f"Confusion Matrix - {name}")
+    plt.tight_layout()
+    plt.savefig(f"models/confusion_matrix_{mod_name}.png", dpi=300)
+    plt.close()
+
+    print(f"Saved confusion matrix for {name} to:")
+    print(f"- models/confusion_matrix_{mod_name}.png")
 
     # Store model reults in a list for later saving/plotting
     results.append({
@@ -1001,7 +1020,7 @@ This section saves the best trained model and the TF-IDF vectorizer.
 These files are later used by the Flask backend for real time predictions.
 """
 
-# Save best model and vectorizer 
+# Save best model and vectorizer S
 joblib.dump(best_model, "models/phishing_model.pkl")
 joblib.dump(vectorizer, "models/vectorizer.pkl")
 
